@@ -1,0 +1,16 @@
+# binary
+*.o
+*.obj
+*.a
+*.so
+*.lib
+*.dll
+*.out
+*.exe
+*.app
+*.elf
+ft_nm
+
+# editor files
+.*.sw*
+.vscode/

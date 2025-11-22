@@ -1,0 +1,12 @@
+# binary
+
+*.a
+*.o
+*.obj
+*.out
+
+# editor files
+
+*.swp
+*.swo
+.vscode/
