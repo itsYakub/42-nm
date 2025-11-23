@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>     /* strerror() */
 
+#include <elf.h>
 #include <fcntl.h>      /* open(), close() */
 #include <unistd.h>     /* write(), getpagesize() */
 #include <sys/stat.h>   /* fstat() */
@@ -12,10 +13,21 @@
 
 #include "libft/libft.h"
 
+/* SECTION: preprocessor
+ * */
+
+#if defined (__LP64__)
+# define ElfHdr     Elf64_Ehdr
+#else
+# define ElfHdr     Elf32_Ehdr
+#endif /* __LP64__ */
+
 /* SECTION: api
  * */
 
 extern int ft_getopt(int, char **);
+extern int ft_procfile(const char *);
+extern int ft_procelf(const char *, const int, const struct stat *);
 
 /* SECTION: globals
  * */
@@ -39,22 +51,12 @@ int main(int ac, char **av) {
     }
 
     for (t_list *path = g_paths; path; path = path->next) {
-        struct stat stat;
         const char  *name;
-        int         fd;
 
         name = path->content;
         if (!name) { return (1); }
-        if (ft_lstsize(g_paths) > 1) {
-            printf("\n%s:\n", name);
-        }
-
-        fd = open(name, O_RDONLY);
-        if (fd == -1) { printf("%s: '%s': No such file\n", g_prog, name); return (1); }
-        if (fstat(fd, &stat) == -1) { perror(g_prog); return (1); }
-        if (S_ISDIR(stat.st_mode)) { printf("%s: Warning: '%s' is a directory\n", g_prog, name); return (1); }
-
-        close(fd), fd = -1;
+        if (ft_lstsize(g_paths) > 1) { printf("\n%s:\n", name); }
+        if (!ft_procfile(name)) { break; }
     }
 
     ft_lstclear(&g_paths, free), g_paths = 0;
@@ -83,6 +85,35 @@ int ft_getopt(int ac, char **av) {
         }
     }
     return (1);    
+}
+
+int ft_procfile(const char *path) {
+    struct stat stat;
+    int         fd;
+
+    fd = open(path, O_RDONLY);
+    if (fd == -1) { printf("%s: '%s': No such file\n", g_prog, path); return (0); }
+    if (fstat(fd, &stat) == -1) { perror(g_prog); return (0); }
+    if (S_ISDIR(stat.st_mode)) { printf("%s: Warning: '%s' is a directory\n", g_prog, path); return (0); }
+    if (!ft_procelf(path, fd, &stat)) { return (0); }
+    if (close(fd) < 0) { printf("%s: close: %s\n", g_prog, strerror(errno)); return (0); }
+
+    return (1);
+}
+
+int ft_procelf(const char *path, const int fd, const struct stat *stat) {
+    ElfHdr  *elfhdr;
+
+    elfhdr = mmap(&elfhdr, stat->st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (!elfhdr) { printf("%s: mmap: %s\n", g_prog, strerror(errno)); return (0); }
+    if (ft_memcmp(elfhdr->e_ident, ELFMAG, SELFMAG)) {
+        printf("%s: '%s': Not an ELF\n", g_prog, path);
+        return (0);
+    }
+
+    if (munmap(elfhdr, stat->st_size) == -1) { printf("%s: munmap: %s\n", g_prog, strerror(errno)); return (0); }
+
+    return (1);
 }
 
 /* SECTION: globals
