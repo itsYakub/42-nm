@@ -36,22 +36,24 @@ extern int ft_procFile(const char *);
 extern int ft_procELF(const char *, const char *);
 
 extern ElfEhdr *ft_ElfEhdrLoad(const char *, const char *);
-extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *, const char *);
-extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *, const char *);
-extern ElfSym  *ft_ElfSymLoad(ElfShdr *, const char *);
 
-extern char *ft_ElfGetStrtab(ElfEhdr *, ElfShdr *, const char *);
+extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *, const char *);
+extern int ft_ElfPhdrPrint(ElfEhdr *, ElfPhdr *, ElfSym *, const char *);
+
+extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *, const char *);
+extern int ft_ElfShdrPrint(ElfEhdr *, ElfShdr *, ElfSym *, const char *);
+
+extern ElfSym *ft_ElfSymLoadS(ElfShdr *, const char *);
+extern ElfSym *ft_ElfSymLoadP(ElfPhdr *, const char *);
+extern ElfSym *ft_ElfGetStrtab(ElfEhdr *, ElfShdr *, const char *);
 
 extern int ft_ElfUnload(void *);
 
 /* SECTION: globals
  * */
 
-extern
-t_list *g_paths;
-
-extern
-const char *g_prog;
+extern t_list *g_paths;
+extern const char *g_prog;
 
 /* SECTION: main
  * */
@@ -169,57 +171,40 @@ int ft_procELF(const char *path, const char *buffer) {
     }
 
     /* .strtab ... */
-    char *strtab = ft_ElfGetStrtab(ehdr, shdr_tb, buffer);
+    ElfSym *strtab = ft_ElfGetStrtab(ehdr, shdr_tb, buffer);
     if (!strtab) {
         ft_ElfUnload(ehdr), ehdr = 0;
         ft_ElfUnload(phdr_tb), phdr_tb = 0;
         ft_ElfUnload(shdr_tb), shdr_tb = 0;
     }
 
-    /* symbols table... */
-    for (size_t i = 0; i < shnum; i++) {
-        ElfShdr shdr = shdr_tb[i];
-        if (shdr.sh_type == SHT_NULL || shdr.sh_type == SHT_STRTAB) {
-            continue;
-        }
-
-        /* print address... */
-        if (shdr.sh_addr != 0) {
-            printf("%016lx ", shdr.sh_addr);
-        }
-        else {
-            printf("%*s ", 16, " ");
-        }
-
-        /* print name... */
-        printf("%s\n", strtab + shdr.sh_name);
-
-        ElfSym *sym_tb = ft_ElfSymLoad(&shdr, buffer);
-        if (!sym_tb) {
-            ft_ElfUnload(ehdr), ehdr = 0;
-            ft_ElfUnload(phdr_tb), phdr_tb = 0;
+    /* phdr print... */
+    for (size_t i = 0; i < phnum; i++) {
+        if (!ft_ElfPhdrPrint(ehdr, &phdr_tb[i], strtab, buffer)) {
+            free(strtab), strtab = 0;
             ft_ElfUnload(shdr_tb), shdr_tb = 0;
+            ft_ElfUnload(phdr_tb), phdr_tb = 0;
+            ft_ElfUnload(ehdr), ehdr = 0;
             return (0);
         }
+    }
 
-        /* symbol... */
-        size_t stnum = shdr.sh_size / sizeof(ElfSym);
-        for (size_t j = 0; j < stnum; j++) {
-            ElfSym sym = sym_tb[j]; (void) sym;
-
-            /* ... */
+    /* shdr print... */
+    for (size_t i = 0; i < shnum; i++) {
+        if (!ft_ElfShdrPrint(ehdr, &shdr_tb[i], strtab, buffer)) {
+            free(strtab), strtab = 0;
+            ft_ElfUnload(shdr_tb), shdr_tb = 0;
+            ft_ElfUnload(phdr_tb), phdr_tb = 0;
+            ft_ElfUnload(ehdr), ehdr = 0;
+            return (0);
         }
-
-        /* cleanup... */
-        ft_ElfUnload(sym_tb), sym_tb = 0;
     }
 
     /* cleanup... */
-    free(strtab), strtab = 0;
+    ft_ElfUnload(strtab), strtab = 0;
     ft_ElfUnload(shdr_tb), shdr_tb = 0;
     ft_ElfUnload(phdr_tb), phdr_tb = 0;
     ft_ElfUnload(ehdr), ehdr = 0;
-
     return (1);
 }
 
@@ -268,6 +253,34 @@ extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (phdr);
 }
 
+int ft_ElfPhdrPrint(ElfEhdr *ehdr, ElfPhdr *phdr, ElfSym *strtab, const char *buffer) {
+    /* safety check... */
+    if (!ehdr) { return (0); } 
+    if (!phdr) { return (0); }
+    if (!strtab) { return (0); }
+    if (!phdr->p_type) { return (1); }
+
+    /* symbols... */
+    ElfSym *sym_tb = ft_ElfSymLoadP(phdr, buffer);
+    if (!sym_tb) {
+        return (0);
+    }
+
+    /* symbol... */
+    size_t stnum = phdr->p_filesz / sizeof(ElfSym);
+    for (size_t j = 0; j < stnum; j++) {
+        ElfSym sym = sym_tb[j];
+
+        if (sym.st_name == 0) {
+            continue;
+        }
+    }
+
+    /* cleanup... */
+    ft_ElfUnload(sym_tb), sym_tb = 0;
+    return (1);
+}
+
 ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     /* safety check... */
     if (!ehdr) { return (0); }
@@ -290,7 +303,49 @@ ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (shdr);
 }
 
-ElfSym *ft_ElfSymLoad(ElfShdr *shdr, const char *buffer) {
+int ft_ElfShdrPrint(ElfEhdr *ehdr, ElfShdr *shdr, ElfSym *strtab, const char *buffer) {
+    /* safety check... */
+    if (!ehdr) { return (0); } 
+    if (!shdr) { return (0); }
+    if (!strtab) { return (0); }
+    if (!shdr->sh_type) { return (1); }
+
+    /* print address... */
+    if (shdr->sh_addr != 0) {
+        printf("%016lx ", shdr->sh_addr);
+    }
+    else {
+        printf("%*s ", 16, " ");
+    }
+
+    /* print name... */
+    printf("%s\n", (const char *) (strtab) + shdr->sh_name);
+
+    /* symbols... */
+    if (shdr->sh_type != SHT_SYMTAB) { return (1); }
+    if (shdr->sh_type != SHT_DYNSYM) { return (1); }
+    
+    ElfSym *sym_tb = ft_ElfSymLoadS(shdr, buffer);
+    if (!sym_tb) {
+        return (0);
+    }
+
+    /* symbol... */
+    size_t stnum = shdr->sh_size / sizeof(ElfSym);
+    for (size_t j = 0; j < stnum; j++) {
+        ElfSym sym = sym_tb[j];
+
+        if (sym.st_name == 0) {
+            continue;
+        }
+    }
+
+    /* cleanup... */
+    ft_ElfUnload(sym_tb), sym_tb = 0;
+    return (1);
+}
+
+ElfSym *ft_ElfSymLoadS(ElfShdr *shdr, const char *buffer) {
     /* safety check... */
     if (!shdr) { return (0); }
     if (!buffer) { return (0); }
@@ -311,10 +366,32 @@ ElfSym *ft_ElfSymLoad(ElfShdr *shdr, const char *buffer) {
     return (sym);
 }
 
-char *ft_ElfGetStrtab(ElfEhdr *ehdr, ElfShdr *shdr, const char *buffer) {
+ElfSym *ft_ElfSymLoadP(ElfPhdr *phdr, const char *buffer) {
+    /* safety check... */
+    if (!phdr) { return (0); }
+    if (!buffer) { return (0); }
+
+    /* helper variables... */
+    size_t offset = phdr->p_offset;
+    size_t filesz = phdr->p_filesz;
+    const char *pbuf = buffer + offset;
+
+    /* allocate sym... */
+    ElfSym *sym = malloc(filesz);
+    if (!sym) { return (0); }
+    if (!ft_memcpy((void *) sym, pbuf, filesz)) {
+        free(sym), sym = 0;
+        return (0);
+    }
+
+    return (sym);
+}
+
+ElfSym *ft_ElfGetStrtab(ElfEhdr *ehdr, ElfShdr *shdr, const char *buffer) {
     /* safety check... */
     if (!ehdr) { return (0); }
     if (!shdr) { return (0); }
+    if (!buffer) { return (0); }
 
     /* get .strtab index... */
     size_t shstrndx = 0;
@@ -330,7 +407,7 @@ char *ft_ElfGetStrtab(ElfEhdr *ehdr, ElfShdr *shdr, const char *buffer) {
         return (0);
     }
 
-    return ((char *) ft_ElfSymLoad(&section, buffer));
+    return (ft_ElfSymLoadS(&section, buffer));
 }
 
 int ft_ElfUnload(void *data) {
