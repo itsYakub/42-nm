@@ -40,6 +40,8 @@ extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *, const char *);
 extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *, const char *);
 extern ElfSym  *ft_ElfSymLoad(ElfShdr *, const char *);
 
+extern char *ft_ElfGetStrtab(ElfEhdr *, ElfShdr *, const char *);
+
 extern int ft_ElfUnload(void *);
 
 /* SECTION: globals
@@ -166,9 +168,32 @@ int ft_procELF(const char *path, const char *buffer) {
         return (0);
     }
 
+    /* .strtab ... */
+    char *strtab = ft_ElfGetStrtab(ehdr, shdr_tb, buffer);
+    if (!strtab) {
+        ft_ElfUnload(ehdr), ehdr = 0;
+        ft_ElfUnload(phdr_tb), phdr_tb = 0;
+        ft_ElfUnload(shdr_tb), shdr_tb = 0;
+    }
+
     /* symbols table... */
     for (size_t i = 0; i < shnum; i++) {
         ElfShdr shdr = shdr_tb[i];
+        if (shdr.sh_type == SHT_NULL || shdr.sh_type == SHT_STRTAB) {
+            continue;
+        }
+
+        /* print address... */
+        if (shdr.sh_addr != 0) {
+            printf("%016lx ", shdr.sh_addr);
+        }
+        else {
+            printf("%*s ", 16, " ");
+        }
+
+        /* print name... */
+        printf("%s\n", strtab + shdr.sh_name);
+
         ElfSym *sym_tb = ft_ElfSymLoad(&shdr, buffer);
         if (!sym_tb) {
             ft_ElfUnload(ehdr), ehdr = 0;
@@ -178,13 +203,11 @@ int ft_procELF(const char *path, const char *buffer) {
         }
 
         /* symbol... */
-        size_t snum = shdr.sh_size / sizeof(ElfSym);
-        for (size_t j = 0; j < snum; j++) {
-            ElfSym sym = sym_tb[j];
+        size_t stnum = shdr.sh_size / sizeof(ElfSym);
+        for (size_t j = 0; j < stnum; j++) {
+            ElfSym sym = sym_tb[j]; (void) sym;
 
             /* ... */
-
-            (void) sym;
         }
 
         /* cleanup... */
@@ -192,14 +215,15 @@ int ft_procELF(const char *path, const char *buffer) {
     }
 
     /* cleanup... */
-    ft_ElfUnload(ehdr), ehdr = 0;
-    ft_ElfUnload(phdr_tb), phdr_tb = 0;
+    free(strtab), strtab = 0;
     ft_ElfUnload(shdr_tb), shdr_tb = 0;
+    ft_ElfUnload(phdr_tb), phdr_tb = 0;
+    ft_ElfUnload(ehdr), ehdr = 0;
 
     return (1);
 }
 
-extern ElfEhdr *ft_ElfEhdrLoad(const char *path, const char *buffer) {
+ElfEhdr *ft_ElfEhdrLoad(const char *path, const char *buffer) {
     /* safety check... */
     if (!path) { return (0); }
     if (!buffer) { return (0); }
@@ -244,7 +268,7 @@ extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (phdr);
 }
 
-extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
+ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     /* safety check... */
     if (!ehdr) { return (0); }
     if (!buffer) { return (0); }
@@ -266,7 +290,7 @@ extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (shdr);
 }
 
-extern ElfSym *ft_ElfSymLoad(ElfShdr *shdr, const char *buffer) {
+ElfSym *ft_ElfSymLoad(ElfShdr *shdr, const char *buffer) {
     /* safety check... */
     if (!shdr) { return (0); }
     if (!buffer) { return (0); }
@@ -287,7 +311,29 @@ extern ElfSym *ft_ElfSymLoad(ElfShdr *shdr, const char *buffer) {
     return (sym);
 }
 
-extern int ft_ElfUnload(void *data) {
+char *ft_ElfGetStrtab(ElfEhdr *ehdr, ElfShdr *shdr, const char *buffer) {
+    /* safety check... */
+    if (!ehdr) { return (0); }
+    if (!shdr) { return (0); }
+
+    /* get .strtab index... */
+    size_t shstrndx = 0;
+    if (ehdr->e_shstrndx != SHN_XINDEX) {
+        shstrndx = ehdr->e_shstrndx;
+    }
+    else {
+        /* process SH_XINDEX... */
+    }
+
+    ElfShdr section = shdr[shstrndx];
+    if (section.sh_type == SHT_NULL) {
+        return (0);
+    }
+
+    return ((char *) ft_ElfSymLoad(&section, buffer));
+}
+
+int ft_ElfUnload(void *data) {
     if (!data) { return (0); }
     
     free(data);
