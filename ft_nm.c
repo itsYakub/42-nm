@@ -36,15 +36,10 @@ extern int ft_procFile(const char *);
 extern int ft_procELF(const char *, const char *);
 
 extern ElfEhdr *ft_ElfEhdrLoad(const char *, const char *);
-
 extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *, const char *);
-extern int ft_ElfPhdrPrint(ElfEhdr *, ElfPhdr *, ElfSym *, const char *);
-
 extern ElfShdr *ft_ElfShdrLoad(ElfEhdr *, const char *);
-extern int ft_ElfShdrPrint(ElfEhdr *, ElfShdr *, ElfSym *, const char *);
 
-extern ElfSym *ft_ElfSymLoadS(ElfShdr *, const char *);
-extern ElfSym *ft_ElfSymLoadP(ElfPhdr *, const char *);
+extern ElfSym *ft_ElfSymLoad(const char *, const size_t, const size_t);
 extern ElfSym *ft_ElfGetStrtab(ElfEhdr *, ElfShdr *, const char *);
 
 extern int ft_ElfUnload(void *);
@@ -138,7 +133,10 @@ int ft_procFile(const char *path) {
     close(fd), fd = 0;
     
     /* execution... */
-    if (!ft_procELF(path, buffer)) { return (0); }
+    if (!ft_procELF(path, buffer)) {
+        free(buffer), buffer = 0;
+        return (0);
+    }
     
     /* cleanup... */
     free(buffer), buffer = 0;
@@ -147,65 +145,87 @@ int ft_procFile(const char *path) {
 }
 
 int ft_procELF(const char *path, const char *buffer) {
+    int exitcode = 1;
+
     /* ehdr... */
     ElfEhdr *ehdr = ft_ElfEhdrLoad(path, buffer);
     if (!ehdr) {
-        return (0);
+        exitcode = 0; goto exit0;
     }
 
     /* phdr table... */
-    size_t phnum = ehdr->e_phnum; (void) phnum;
     ElfPhdr *phdr_tb = ft_ElfPhdrLoad(ehdr, buffer);
     if (!phdr_tb) {
-        ft_ElfUnload(ehdr), ehdr = 0;
-        return (0);
+        exitcode = 0; goto exit0;
     }
 
     /* shdr table... */
-    size_t shnum = ehdr->e_shnum; (void) shnum;
     ElfShdr *shdr_tb = ft_ElfShdrLoad(ehdr, buffer);
     if (!shdr_tb) {
-        ft_ElfUnload(ehdr), ehdr = 0;
-        ft_ElfUnload(phdr_tb), phdr_tb = 0;
-        return (0);
+        exitcode = 0; goto exit0;
     }
 
     /* .strtab ... */
     ElfSym *strtab = ft_ElfGetStrtab(ehdr, shdr_tb, buffer);
     if (!strtab) {
-        ft_ElfUnload(ehdr), ehdr = 0;
-        ft_ElfUnload(phdr_tb), phdr_tb = 0;
-        ft_ElfUnload(shdr_tb), shdr_tb = 0;
+        exitcode = 0; goto exit0;
     }
 
     /* phdr print... */
-    for (size_t i = 0; i < phnum; i++) {
-        if (!ft_ElfPhdrPrint(ehdr, &phdr_tb[i], strtab, buffer)) {
-            free(strtab), strtab = 0;
-            ft_ElfUnload(shdr_tb), shdr_tb = 0;
-            ft_ElfUnload(phdr_tb), phdr_tb = 0;
-            ft_ElfUnload(ehdr), ehdr = 0;
-            return (0);
+    for (size_t i = 0; i < ehdr->e_phnum; i++) {
+        ElfPhdr phdr   = phdr_tb[i];
+        printf("phdr:\n");
+        printf("- type: 0x%x\n", phdr.p_type);
+        
+        ElfSym *sym_tb = ft_ElfSymLoad(buffer, phdr.p_filesz, phdr.p_offset);
+        if (!sym_tb) {
+            exitcode = 0; goto exit0;
         }
+
+        for (size_t j = 0; j < phdr.p_filesz / sizeof(ElfSym); j++) {
+            ElfSym sym = sym_tb[j];
+
+            /* ... */
+            printf("\tsymbol:\n");
+            printf("\t- name:  0x%x\n", sym.st_name);
+            printf("\t- value: 0x%lx\n", sym.st_value);
+            printf("\t- size:  0x%lx\n", sym.st_size);
+        } 
+        
+        ft_ElfUnload(sym_tb), sym_tb = 0;
     }
 
     /* shdr print... */
-    for (size_t i = 0; i < shnum; i++) {
-        if (!ft_ElfShdrPrint(ehdr, &shdr_tb[i], strtab, buffer)) {
-            free(strtab), strtab = 0;
-            ft_ElfUnload(shdr_tb), shdr_tb = 0;
-            ft_ElfUnload(phdr_tb), phdr_tb = 0;
-            ft_ElfUnload(ehdr), ehdr = 0;
-            return (0);
+    for (size_t i = 0; i < ehdr->e_shnum; i++) {
+        ElfShdr shdr   = shdr_tb[i];
+        printf("shdr:\n");
+        printf("- type: 0x%x\n", shdr.sh_type);
+        printf("- name: %u\n", shdr.sh_name);
+        
+        ElfSym *sym_tb = ft_ElfSymLoad(buffer, shdr.sh_size, shdr.sh_offset);
+        if (!sym_tb) {
+            exitcode = 0; goto exit0;
         }
+
+        for (size_t j = 0; j < shdr.sh_size / sizeof(ElfSym); j++) {
+            ElfSym sym = sym_tb[j];
+
+            /* ... */
+            printf("\tsymbol:\n");
+            printf("\t- name:  0x%x\n", sym.st_name);
+            printf("\t- value: 0x%lx\n", sym.st_value);
+            printf("\t- size:  0x%lx\n", sym.st_size);
+        }
+
+        ft_ElfUnload(sym_tb), sym_tb = 0;
     }
 
-    /* cleanup... */
-    ft_ElfUnload(strtab), strtab = 0;
-    ft_ElfUnload(shdr_tb), shdr_tb = 0;
-    ft_ElfUnload(phdr_tb), phdr_tb = 0;
-    ft_ElfUnload(ehdr), ehdr = 0;
-    return (1);
+exit0:
+    if (strtab)  { ft_ElfUnload(strtab),  strtab = 0; }
+    if (shdr_tb) { ft_ElfUnload(shdr_tb), shdr_tb = 0; }
+    if (phdr_tb) { ft_ElfUnload(phdr_tb), phdr_tb = 0; }
+    if (ehdr)    { ft_ElfUnload(ehdr),    ehdr = 0; }
+    return (exitcode);
 }
 
 ElfEhdr *ft_ElfEhdrLoad(const char *path, const char *buffer) {
@@ -253,34 +273,6 @@ extern ElfPhdr *ft_ElfPhdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (phdr);
 }
 
-int ft_ElfPhdrPrint(ElfEhdr *ehdr, ElfPhdr *phdr, ElfSym *strtab, const char *buffer) {
-    /* safety check... */
-    if (!ehdr) { return (0); } 
-    if (!phdr) { return (0); }
-    if (!strtab) { return (0); }
-    if (!phdr->p_type) { return (1); }
-
-    /* symbols... */
-    ElfSym *sym_tb = ft_ElfSymLoadP(phdr, buffer);
-    if (!sym_tb) {
-        return (0);
-    }
-
-    /* symbol... */
-    size_t stnum = phdr->p_filesz / sizeof(ElfSym);
-    for (size_t j = 0; j < stnum; j++) {
-        ElfSym sym = sym_tb[j];
-
-        if (sym.st_name == 0) {
-            continue;
-        }
-    }
-
-    /* cleanup... */
-    ft_ElfUnload(sym_tb), sym_tb = 0;
-    return (1);
-}
-
 ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     /* safety check... */
     if (!ehdr) { return (0); }
@@ -303,83 +295,14 @@ ElfShdr *ft_ElfShdrLoad(ElfEhdr *ehdr, const char *buffer) {
     return (shdr);
 }
 
-int ft_ElfShdrPrint(ElfEhdr *ehdr, ElfShdr *shdr, ElfSym *strtab, const char *buffer) {
+ElfSym *ft_ElfSymLoad(const char *buffer, const size_t size, const size_t offset) {
     /* safety check... */
-    if (!ehdr) { return (0); } 
-    if (!shdr) { return (0); }
-    if (!strtab) { return (0); }
-    if (!shdr->sh_type) { return (1); }
-
-    /* print address... */
-    if (shdr->sh_addr != 0) {
-        printf("%016lx ", shdr->sh_addr);
-    }
-    else {
-        printf("%*s ", 16, " ");
-    }
-
-    /* print name... */
-    printf("%s\n", (const char *) (strtab) + shdr->sh_name);
-
-    /* symbols... */
-    if (shdr->sh_type != SHT_SYMTAB) { return (1); }
-    if (shdr->sh_type != SHT_DYNSYM) { return (1); }
-    
-    ElfSym *sym_tb = ft_ElfSymLoadS(shdr, buffer);
-    if (!sym_tb) {
-        return (0);
-    }
-
-    /* symbol... */
-    size_t stnum = shdr->sh_size / sizeof(ElfSym);
-    for (size_t j = 0; j < stnum; j++) {
-        ElfSym sym = sym_tb[j];
-
-        if (sym.st_name == 0) {
-            continue;
-        }
-    }
-
-    /* cleanup... */
-    ft_ElfUnload(sym_tb), sym_tb = 0;
-    return (1);
-}
-
-ElfSym *ft_ElfSymLoadS(ElfShdr *shdr, const char *buffer) {
-    /* safety check... */
-    if (!shdr) { return (0); }
     if (!buffer) { return (0); }
 
-    /* helper variables... */
-    size_t offset = shdr->sh_offset;
-    size_t shsize = shdr->sh_size;
-    const char *sbuf = buffer + offset;
-
     /* allocate sym... */
-    ElfSym *sym = malloc(shsize);
+    ElfSym *sym = malloc(size);
     if (!sym) { return (0); }
-    if (!ft_memcpy((void *) sym, sbuf, shsize)) {
-        free(sym), sym = 0;
-        return (0);
-    }
-
-    return (sym);
-}
-
-ElfSym *ft_ElfSymLoadP(ElfPhdr *phdr, const char *buffer) {
-    /* safety check... */
-    if (!phdr) { return (0); }
-    if (!buffer) { return (0); }
-
-    /* helper variables... */
-    size_t offset = phdr->p_offset;
-    size_t filesz = phdr->p_filesz;
-    const char *pbuf = buffer + offset;
-
-    /* allocate sym... */
-    ElfSym *sym = malloc(filesz);
-    if (!sym) { return (0); }
-    if (!ft_memcpy((void *) sym, pbuf, filesz)) {
+    if (!ft_memcpy((void *) sym, buffer + offset, size)) {
         free(sym), sym = 0;
         return (0);
     }
@@ -407,7 +330,7 @@ ElfSym *ft_ElfGetStrtab(ElfEhdr *ehdr, ElfShdr *shdr, const char *buffer) {
         return (0);
     }
 
-    return (ft_ElfSymLoadS(&section, buffer));
+    return (ft_ElfSymLoad(buffer, section.sh_size, section.sh_offset));
 }
 
 int ft_ElfUnload(void *data) {
