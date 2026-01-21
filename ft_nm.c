@@ -36,10 +36,70 @@ extern int ft_file(const char *);
 extern int ft_elf32(const char *);
 
 extern int ft_elf64(const char *);
+extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *, int (*)(Elf64_Sym, Elf64_Sym, const char *));
 
 extern int ft_elf_getMagic(const char *);
 extern int ft_elf_getArch(const char *);
 extern void *ft_elf_extract(const char *, const size_t, const size_t);
+
+/* SECTION: libft
+ * */
+
+static void *ft_memdup(void *src, const size_t size) {
+    /* null-check... */
+    if (!src) { return (0); }
+
+    /* ...alloc... */
+    void *dst = malloc(size);
+    if (!dst) {
+        return (0);
+    }
+
+    /* ...copy */
+    return (ft_memcpy(dst, src, size));
+}
+
+static void *ft_memjoin(void *s1, void *s2, const size_t ss1, const size_t ss2) {
+    /* null-check... */
+    if (!s1) { return (0); }
+    if (!s2) { return (0); }
+
+    /* ...alloc... */
+    void *dst = malloc(ss1 + ss2);
+    if (!dst) {
+        return (0);
+    }
+
+    /* ...copy */
+    uint8_t *dst1 = (uint8_t *)dst;
+    dst = ft_memcpy(dst1, s1, ss1);
+    dst1 += ss1;
+    dst1 = ft_memcpy(dst1, s2, ss2);
+    return (dst);
+}
+
+/* SECTION: helper
+ * */
+
+static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
+    const char *name0 = strtab + sym0.st_name;
+    const char *name1 = strtab + sym1.st_name;
+
+    while (!ft_isalpha(*name0)) { name0++; }
+    while (!ft_isalpha(*name1)) { name1++; }
+
+    return (ft_tolower(*name0) < ft_tolower(*name1));
+}
+
+static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
+    const char *name0 = strtab + sym0.st_name;
+    const char *name1 = strtab + sym1.st_name;
+
+    while (!ft_isalpha(*name0)) { name0++; }
+    while (!ft_isalpha(*name1)) { name1++; }
+
+    return (ft_tolower(*name0) > ft_tolower(*name1));
+}
 
 /* SECTION: globals
  * */
@@ -189,53 +249,85 @@ extern int ft_elf64(const char *buffer) {
         }
     }
 
-    /* shdr print... */
+    /* extract symbol table... */
+    Elf64_Sym *sym_tb = 0;
+    size_t sym_tb_s = 0;
     for (size_t i = 0; i < ehdr->e_shnum; i++) {
         Elf64_Shdr shdr = shdr_tb[i];
         if (shdr.sh_type != SHT_SYMTAB) {
             continue;
         }
 
-        /* select current string table... */
-        const char *string_tb = 0;
-        if (shdr.sh_type == SHT_SYMTAB) {
-            string_tb = strtab;
-        }
 
-        Elf64_Sym *sym_tb = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
-        if (!sym_tb) {
+        Elf64_Sym *tmp = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
+        if (!tmp) {
             exitcode = 0; goto ft_elf64_exit;
         }
 
-        for (size_t j = 0; j < shdr.sh_size / sizeof(Elf64_Sym); j++) {
-            Elf64_Sym sym = sym_tb[j];
-            
-            const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
-            if (st_type != STT_NOTYPE &&
-                st_type != STT_OBJECT &&
-                st_type != STT_FUNC &&
-                st_type != STT_COMMON
-            ) {
-                continue;
+        if (!sym_tb) {
+            sym_tb = ft_memdup(tmp, shdr.sh_size);
+            if (!sym_tb) {
+                free(tmp), tmp = 0;
+                exitcode = 0; goto ft_elf64_exit;
             }
-
-            const char *st_name = string_tb + sym.st_name;
-            if (!st_name || !st_name[0]) {
-                continue;
+            sym_tb_s = shdr.sh_size / sizeof(Elf64_Sym);
+        }
+        else {
+            void *tmp1 = sym_tb;
+            sym_tb = ft_memjoin(sym_tb, tmp, shdr.sh_size, sym_tb_s);
+            if (!sym_tb) {
+                free(tmp), tmp = 0;
+                exitcode = 0; goto ft_elf64_exit;
             }
-
-            /* print address... */
-            if (sym.st_value) { printf("%016lx ", sym.st_value); }
-            else { printf("%*c ", 16, ' '); }
-            
-            /* print type... */
-            printf("A ");
-
-            /* print name... */
-            printf("%s\n", st_name);
+            sym_tb_s += shdr.sh_size / sizeof(Elf64_Sym);
+            free(tmp1), tmp1 = 0;
         }
 
-        free(sym_tb), sym_tb = 0;
+        free(tmp), tmp = 0;
+    }
+
+    /* sort table...
+     * TODO:
+     *  Fix the broken sorting algorithms...
+     * */
+    int tmp = 1;
+    switch (tmp) {
+        case (1): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_comparea); } break;
+        case (2): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_compared); } break;
+        default:  { /* ...don't sort... */ } break;
+    }
+
+    /* print symbol table...
+     * */
+    for (size_t i = 0; i < sym_tb_s; i++) {
+        Elf64_Sym sym = sym_tb[i];
+        const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
+        if (st_type != STT_NOTYPE &&
+            st_type != STT_OBJECT &&
+            st_type != STT_FUNC &&
+            st_type != STT_COMMON
+        ) {
+            continue;
+        }
+
+        const char *st_name = strtab + sym.st_name;
+        if (!st_name || !st_name[0]) {
+            continue;
+        }
+
+        /* print address... */
+        if (sym.st_value) {
+            printf("%016lx ", sym.st_value);
+        }
+        else {
+            printf("%*c ", 16, ' ');
+        }
+
+        /* print type... */
+        printf("%c ", 'A');
+
+        /* print name... */
+        printf("%s\n", strtab + sym_tb[i].st_name);
     }
 
 ft_elf64_exit:
@@ -243,8 +335,27 @@ ft_elf64_exit:
     if (strtab)   { free((void *) strtab), strtab = 0; }
     if (dynstr)   { free((void *) dynstr), dynstr = 0; }
     if (shdr_tb)  { free(shdr_tb), shdr_tb = 0; }
+    if (sym_tb)   { free(sym_tb), sym_tb = 0; }
     if (ehdr)     { free(ehdr), ehdr = 0; }
     return (exitcode);
+}
+
+extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
+    /* safety-check... */
+    if (!sym_tb) { return (0); }
+    if (!strtab) { return (0); }
+    if (!size)   { return (0); }
+
+    for (size_t i = 0; i < size - 1; i++) {
+        for (size_t j = 0; j < size - 1 - i; j++) {
+            if (compare(sym_tb[i], sym_tb[j], strtab)) {
+                Elf64_Sym tmp = sym_tb[i];
+                sym_tb[i] = sym_tb[j];
+                sym_tb[j] = tmp;
+            }
+        }
+    }
+    return (sym_tb);
 }
 
 int ft_elf_getMagic(const char *buffer) {
