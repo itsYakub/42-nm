@@ -1,15 +1,18 @@
 /* TODO:
- * 1. Store the list of symbols to be printed as a seperate pointer.
+ * 1. [X] Store the list of symbols to be printed as a seperate pointer.
  *    We can, technically speaking, memdup the whole symbol table of .symtab section and that should work fine.
- * 2. Implement sort and reverse sort for symbols
- * 3. Find out a type of each symbol based on requirements from man
- * 4. Get rid of printf in favor of something else (could be the simplest libft or ft_printf because it handles most of the cases pretty well)
- * 4. Implement proper getopt
- * 5. Implement -a flag
- * 6. Implement -g flag
- * 7. Implement -u flag
- * 8. Implement -r flag
- * 9. Implement -p flag
+ * 2. [X] Implement sort and reverse sort for symbols
+ * 3. [X] Find out a type of each symbol based on requirements from man
+ * 4. [ ] Get rid of printf in favor of something else (could be the simplest libft or ft_printf because it handles most of the cases pretty well)
+ * 4. [ ] Implement proper getopt
+ * 5. [ ] Implement -a flag
+ * 6. [ ] Implement -g flag
+ * 7. [ ] Implement -u flag
+ * 8. [X] Implement -r flag
+ * 9. [X] Implement -p flag
+ * 10. [ ] Implement -h
+ * 11. [ ] Invalid flag should default to 'h'
+ * 12. [ ] Check if everything works on other compilers
  * */
 
 #include <stdio.h>      /* perror() */
@@ -27,6 +30,17 @@
 
 #include "libft/libft.h"
 
+/* SECTION: globals
+ * */
+
+extern t_list *g_paths;
+extern const char *g_prog;
+
+extern int g_opt_debug;
+extern int g_opt_extern;
+extern int g_opt_undef;
+extern int g_opt_sort;
+
 /* SECTION: api
  * */
 
@@ -36,6 +50,7 @@ extern int ft_file(const char *);
 extern int ft_elf32(const char *);
 
 extern int ft_elf64(const char *);
+extern int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *, int (*)(Elf64_Sym, Elf64_Sym, const char *));
 
 extern int ft_elf_getMagic(const char *);
@@ -85,33 +100,49 @@ static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab)
     const char *name0 = strtab + sym0.st_name;
     const char *name1 = strtab + sym1.st_name;
 
-    while (!ft_isalpha(*name0)) { name0++; }
-    while (!ft_isalpha(*name1)) { name1++; }
+    while (*name0 && *name1) {
+        while (!ft_isalnum(*name0)) { name0++; }
+        while (!ft_isalnum(*name1)) { name1++; }
+        if (ft_tolower(*name0) != ft_tolower(*name1)) { break; }
+        name0++;
+        name1++;
+    }
 
-    return (ft_tolower(*name0) < ft_tolower(*name1));
+    if (!*name0 && !*name1) {
+        return (1);
+    }
+    return (ft_tolower(*name0) > ft_tolower(*name1));
 }
 
 static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
     const char *name0 = strtab + sym0.st_name;
     const char *name1 = strtab + sym1.st_name;
 
-    while (!ft_isalpha(*name0)) { name0++; }
-    while (!ft_isalpha(*name1)) { name1++; }
+    while (*name0 && *name1) {
+        while (!ft_isalnum(*name0)) { name0++; }
+        while (!ft_isalnum(*name1)) { name1++; }
+        if (ft_tolower(*name0) != ft_tolower(*name1)) { break; }
+        name0++;
+        name1++;
+    }
 
-    return (ft_tolower(*name0) > ft_tolower(*name1));
+    if (!*name0 && !*name1) {
+        return (1);
+    }
+    return (ft_tolower(*name0) < ft_tolower(*name1));
 }
-
-/* SECTION: globals
- * */
-
-extern t_list *g_paths;
-extern const char *g_prog;
 
 /* SECTION: main
  * */
 
 int main(int ac, char **av) {
-    if (!ft_getopt(ac, av)) { return (1); }
+    if (!ft_getopt(ac, av)) {
+        if (g_paths) {
+            ft_lstclear(&g_paths, free), g_paths = 0;
+        }
+        return (1);
+    }
+    
     if (!g_paths || !ft_lstsize(g_paths)) {
         g_paths = ft_lstnew(ft_strdup("a.out"));
         if (!g_paths) {
@@ -121,10 +152,17 @@ int main(int ac, char **av) {
 
     for (t_list *path = g_paths; path; path = path->next) {
         const char *name = path->content;
+        if (!name) {
+            ft_lstclear(&g_paths, free), g_paths = 0;
+            return (1);
+        }
 
-        if (!name) { return (1); }
         if (ft_lstsize(g_paths) > 1) { printf("\n%s:\n", name); }
-        if (!ft_file(name)) { break; }
+
+        if (!ft_file(name)) {
+            ft_lstclear(&g_paths, free), g_paths = 0;
+            return (1);
+        }
     }
 
     ft_lstclear(&g_paths, free), g_paths = 0;
@@ -140,7 +178,68 @@ int ft_getopt(int ac, char **av) {
     if (!g_prog) { return (0); }
     while (*++av) {
         /* process options... */
-        if (**av == '-') { }
+        if (**av == '-') {
+            const char *opt = *av + 1;
+
+            /* long-option... */
+            if (*opt == '-') {
+                opt++;
+
+                if (!ft_strncmp(opt, "undefined-only", 15)) { g_opt_undef = 1; }
+                else if (!ft_strncmp(opt, "debug-syms", 10)) {
+                    if (!g_opt_undef) {
+                        g_opt_debug = 1;
+                    }   
+                }
+                else if (!ft_strncmp(opt, "extern-only", 11)) {
+                    if (!g_opt_undef) {
+                        g_opt_extern = 1;
+                    }   
+                }
+
+                else if (!ft_strncmp(opt, "no-sort", 8)) { g_opt_sort = 0; }
+                else if (!ft_strncmp(opt, "reverse-sort", 12)) {
+                    if (g_opt_sort != 0) {
+                        g_opt_sort = 2;
+                    }
+                }
+
+                else {
+                    printf("%s: unknown command: %s\n", g_prog, *av);
+                    return (0);
+                }
+            }
+            /* short-option... */
+            else {
+                do {
+                    switch (*opt) {
+                        case ('u'): { g_opt_undef = 1; } break;
+                        case ('a'): {
+                            if (!g_opt_undef) {
+                                g_opt_debug = 1;
+                            }   
+                        } break;
+                        case ('g'): {
+                            if (!g_opt_undef) {
+                                g_opt_extern = 1;
+                            }   
+                        } break;
+
+                        case ('p'): { g_opt_sort = 0; } break;
+                        case ('r'): {
+                            if (g_opt_sort != 0) {
+                                g_opt_sort = 2;
+                            }            
+                        } break;
+
+                        default: {
+                            printf("%s: unknown command: %s\n", g_prog, *av);
+                            return (0);
+                        }
+                    }
+                } while (*++opt);
+            }
+        }
 
         /* process files... */
         else {
@@ -258,7 +357,6 @@ extern int ft_elf64(const char *buffer) {
             continue;
         }
 
-
         Elf64_Sym *tmp = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
         if (!tmp) {
             exitcode = 0; goto ft_elf64_exit;
@@ -286,12 +384,12 @@ extern int ft_elf64(const char *buffer) {
         free(tmp), tmp = 0;
     }
 
-    /* sort table...
-     * TODO:
-     *  Fix the broken sorting algorithms...
-     * */
-    int tmp = 1;
-    switch (tmp) {
+    if (sym_tb_s == 0) {
+        printf("%s: no symbols\n", g_prog);
+        goto ft_elf64_exit;
+    }
+
+    switch (g_opt_sort) {
         case (1): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_comparea); } break;
         case (2): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_compared); } break;
         default:  { /* ...don't sort... */ } break;
@@ -315,6 +413,12 @@ extern int ft_elf64(const char *buffer) {
             continue;
         }
 
+        if (g_opt_undef) {
+            if (sym.st_shndx != SHN_UNDEF) {
+                continue;
+            }
+        }
+
         /* print address... */
         if (sym.st_value) {
             printf("%016lx ", sym.st_value);
@@ -324,10 +428,11 @@ extern int ft_elf64(const char *buffer) {
         }
 
         /* print type... */
-        printf("%c ", 'A');
+        const char letter_code = ft_elf64_getLetterCode(shdr_tb, sym);
+        printf("%c ", letter_code);
 
         /* print name... */
-        printf("%s\n", strtab + sym_tb[i].st_name);
+        printf("%s\n", strtab + sym.st_name);
     }
 
 ft_elf64_exit:
@@ -340,7 +445,86 @@ ft_elf64_exit:
     return (exitcode);
 }
 
-extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
+int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
+    /* null-check... */
+    if (!shdr_tb) { return (0); }
+    
+    /* Weak symbols... */
+    const uint16_t st_shndx = sym.st_shndx;
+    const uint8_t st_type   = ELF64_ST_TYPE(sym.st_info);
+    const uint8_t st_bind   = ELF64_ST_BIND(sym.st_info);
+    switch (st_bind) {
+        case (STB_GNU_UNIQUE): { return ('u'); }
+        case (STB_WEAK): {
+            if (st_shndx == SHN_UNDEF) {
+                if (st_type == STT_OBJECT) { return ('v'); }
+                else {
+                    return ('w');
+                }
+            }
+            else {
+                if (st_type == STT_OBJECT) { return ('V'); }
+                else {
+                    return ('W');
+                }
+            }
+        }
+    }
+
+    /* special indices... */
+    switch (st_shndx) {
+        case (SHN_UNDEF): {
+            return (st_bind == STB_LOCAL ? 'u' : 'U');
+        }
+        case (SHN_ABS): {
+            return (st_bind == STB_LOCAL ? 'a' : 'A');
+        }
+        case (SHN_COMMON): {
+            return (st_bind == STB_LOCAL ? 'c' : 'C');
+        }
+    }
+    
+    /* result */
+    int c = 0;
+
+    /* Section type/flags... */
+    Elf64_Shdr shdr = shdr_tb[sym.st_shndx];
+    
+    const uint32_t sh_type = shdr.sh_type;
+    switch (sh_type) {
+        case (SHT_NOBITS): {
+            if (shdr.sh_flags == (SHF_ALLOC | SHF_WRITE)) {
+                c = 'B';
+            }
+        } break;
+
+        case (SHT_PROGBITS): {
+            switch (shdr.sh_flags) {
+                case (SHF_ALLOC):
+                case (SHF_ALLOC | SHF_MERGE):
+                case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { c = 'R'; } break;
+
+                case (SHF_ALLOC | SHF_WRITE):
+                case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { c = 'D'; } break;
+
+                case (SHF_ALLOC | SHF_EXECINSTR):
+                case (SHF_ALLOC | SHF_EXECINSTR | SHF_GROUP):
+                case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { c = 'T'; } break;
+            }
+        } break;
+
+        default: { c = 'D'; } break;
+    }
+
+    /* check if symbol is global / local... */
+    if (st_bind == STB_LOCAL) {
+        c = ft_tolower(c);
+    }
+
+    return (c);
+}
+
+Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
     /* safety-check... */
     if (!sym_tb) { return (0); }
     if (!strtab) { return (0); }
@@ -348,10 +532,10 @@ extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char
 
     for (size_t i = 0; i < size - 1; i++) {
         for (size_t j = 0; j < size - 1 - i; j++) {
-            if (compare(sym_tb[i], sym_tb[j], strtab)) {
-                Elf64_Sym tmp = sym_tb[i];
-                sym_tb[i] = sym_tb[j];
-                sym_tb[j] = tmp;
+            if (compare(sym_tb[j], sym_tb[j + 1], strtab)) {
+                Elf64_Sym tmp = sym_tb[j];
+                sym_tb[j] = sym_tb[j + 1];
+                sym_tb[j + 1] = tmp;
             }
         }
     }
@@ -405,3 +589,28 @@ void *ft_elf_extract(const char *buffer, const size_t size, const size_t offset)
 
 t_list *g_paths = 0;
 const char *g_prog = 0;
+
+/* g_opt_debug - show debug symbols
+ * > 0 - disabled
+ * > 1 - enabled
+ * */
+int g_opt_debug = 0;
+
+/* g_opt_extern - show extern symbols
+ * > 0 - disabled
+ * > 1 - enabled
+ * */
+int g_opt_extern = 0;
+
+/* g_opt_undef - show undefined symbols
+ * > 0 - disabled
+ * > 1 - enabled
+ * */
+int g_opt_undef = 0;
+
+/* g_opt_sort - select sorting method
+ * > 0 - none
+ * > 1 - ascending (a - z)
+ * > 2 - descending (z - a)
+ * */
+int g_opt_sort = 1;
