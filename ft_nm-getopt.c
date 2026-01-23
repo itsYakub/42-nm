@@ -13,20 +13,20 @@ extern int ft_getopt(int ac, char **av) {
             if (*opt == '-') {
                 opt++;
 
-                if (!ft_strncmp(opt, "undefined-only", 15)) { g_opt_undef = 1; }
-                else if (!ft_strncmp(opt, "debug-syms", 10)) {
+                if (!ft_strcmp(opt, "undefined-only")) { g_opt_undef = 1; }
+                else if (!ft_strcmp(opt, "debug-syms")) {
                     if (!g_opt_undef) {
                         g_opt_debug = 1;
                     }   
                 }
-                else if (!ft_strncmp(opt, "extern-only", 11)) {
+                else if (!ft_strcmp(opt, "extern-only")) {
                     if (!g_opt_undef) {
                         g_opt_extern = 1;
                     }   
                 }
 
-                else if (!ft_strncmp(opt, "no-sort", 8)) { g_opt_sort = 0; }
-                else if (!ft_strncmp(opt, "reverse-sort", 12)) {
+                else if (!ft_strcmp(opt, "no-sort")) { g_opt_sort = 0; }
+                else if (!ft_strcmp(opt, "reverse-sort")) {
                     if (g_opt_sort != 0) {
                         g_opt_sort = 2;
                     }

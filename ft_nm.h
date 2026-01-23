@@ -53,4 +53,6 @@ extern void *ft_memdup(void *, const size_t);
 
 extern void *ft_memjoin(void *, void *, const size_t, const size_t);
 
+extern int ft_strcmp(const char *, const char *);
+
 #endif /* _ft_nm_h_ */

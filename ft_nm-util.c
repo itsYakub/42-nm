@@ -73,3 +73,13 @@ extern void *ft_memjoin(void *s1, void *s2, const size_t ss1, const size_t ss2) 
     dst1 = ft_memcpy(dst1, s2, ss2);
     return (dst);
 }
+
+extern int ft_strcmp(const char *s0, const char *s1) {
+    while (*s0 && *s1) {
+        if (*s0 != *s1) { return (*s0 - *s1); }
+    
+        s0++;
+        s1++;
+    }
+    return (0);
+}

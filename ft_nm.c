@@ -12,8 +12,8 @@
  * 9. [X] Implement -p flag
  * 10. [ ] Implement -h
  * 11. [ ] Invalid flag should default to 'h'
- * 12. [ ] Check if everything works on other compilers
- * 13. [ ] Check if everything works for C++ executables
+ * 12. [X] Check if everything works on other compilers
+ * 13. [X] Check if everything works for C++ executables
  * */
 
 #include "./ft_nm.h"

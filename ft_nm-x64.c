@@ -144,40 +144,36 @@ static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab)
     const char *name0 = strtab + sym0.st_name;
     const char *name1 = strtab + sym1.st_name;
 
-    while (*name0 && *name1) {
-        while (!ft_isalnum(*name0)) { name0++; }
-        while (!ft_isalnum(*name1)) { name1++; }
-        if (ft_tolower(*name0) != ft_tolower(*name1)) { break; }
-        name0++;
-        name1++;
+    while (*name0 || *name1) {
+        while (*name0 && !ft_isalnum(*name0)) { name0++; }
+        while (*name1 && !ft_isalnum(*name1)) { name1++; }
+        if (ft_tolower(*name0) != ft_tolower(*name1)) {
+            return (ft_tolower(*name0) > ft_tolower(*name1));
+        }
+
+        if (*name0) { name0++; }
+        if (*name1) { name1++; }
     }
 
-    if (!*name0 && !*name1) {
-        /* for cases such as "data_start" <-> "__data_start" and "__data_start" <-> "data_start"... */
-        if (!ft_isalnum(*(strtab + sym0.st_name))) {
-            return (0);
-        }
-        return (1);
-    }
-    return (ft_tolower(*name0) > ft_tolower(*name1));
+    return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) > 0);
 }
 
 static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
     const char *name0 = strtab + sym0.st_name;
     const char *name1 = strtab + sym1.st_name;
 
-    while (*name0 && *name1) {
-        while (!ft_isalnum(*name0)) { name0++; }
-        while (!ft_isalnum(*name1)) { name1++; }
-        if (ft_tolower(*name0) != ft_tolower(*name1)) { break; }
-        name0++;
-        name1++;
+    while (*name0 || *name1) {
+        while (*name0 && !ft_isalnum(*name0)) { name0++; }
+        while (*name1 && !ft_isalnum(*name1)) { name1++; }
+        if (ft_tolower(*name0) != ft_tolower(*name1)) {
+            return (ft_tolower(*name0) < ft_tolower(*name1));
+        }
+
+        if (*name0) { name0++; }
+        if (*name1) { name1++; }
     }
 
-    if (!*name0 && !*name1) {
-        return (1);
-    }
-    return (ft_tolower(*name0) < ft_tolower(*name1));
+    return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) < 0);
 }
 
 static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
