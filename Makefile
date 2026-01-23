@@ -49,18 +49,15 @@ clean :
 	rm -f $(OBJS)
 
 
+TEST_FILE	= $(TARGET)
+
 .PHONY : test
 
 test :
-	@./$(TARGET) $(TARGET) > $(TARGET)_dump
-	@nm $(TARGET) > nm_dump
-	@-diff $(TARGET)_dump nm_dump
-	@rm $(TARGET)_dump
-	@rm nm_dump
+	@-diff <(nm $(TEST_FILE)) <(./$(TARGET) $(TEST_FILE))
 
 
 # ========
-
 
 $(TARGET) : $(OBJS)
 	make -C $(LIBFT) bonus

@@ -153,6 +153,10 @@ static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab)
     }
 
     if (!*name0 && !*name1) {
+        /* for cases such as "data_start" <-> "__data_start" and "__data_start" <-> "data_start"... */
+        if (!ft_isalnum(*(strtab + sym0.st_name))) {
+            return (0);
+        }
         return (1);
     }
     return (ft_tolower(*name0) > ft_tolower(*name1));
