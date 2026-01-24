@@ -83,3 +83,7 @@ extern int ft_strcmp(const char *s0, const char *s1) {
     }
     return (0);
 }
+
+extern int ft_islower(int c) {
+    return (c >= 'a' && c <= 'z');
+}

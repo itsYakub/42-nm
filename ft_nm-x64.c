@@ -3,15 +3,18 @@
 /* SECTION: static functions
  * */
 
+
+static void *ft_elf64_getStrtab(Elf64_Ehdr *, Elf64_Shdr *, const char *, const char *, const char *);
+
+static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *, Elf64_Shdr *, const char *, size_t *);
+
 static int ft_elf64_comparea(Elf64_Sym, Elf64_Sym, const char *);
 
 static int ft_elf64_compared(Elf64_Sym, Elf64_Sym, const char *);
 
-static void *ft_elf64_getStrtab(Elf64_Ehdr *, Elf64_Shdr *, const char *, const char *, const char *);
+static int ft_elf64_printSymbol(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
 
 static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
-
-static int ft_elf64_print(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
 
 /* SECTION: api
  * */
@@ -37,46 +40,14 @@ extern int ft_elf64(const char *buffer) {
     const char *strtab = ft_elf64_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
 
     /* extract symbol table... */
-    Elf64_Sym *sym_tb = 0;
     size_t sym_tb_s = 0;
-    for (size_t i = 0; i < ehdr->e_shnum; i++) {
-        Elf64_Shdr shdr = shdr_tb[i];
-        if (shdr.sh_type != SHT_SYMTAB) {
-            continue;
-        }
-
-        Elf64_Sym *tmp = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
-        if (!tmp) {
-            exitcode = 0; goto ft_elf64_exit;
-        }
-
-        if (!sym_tb) {
-            sym_tb = ft_memdup(tmp, shdr.sh_size);
-            if (!sym_tb) {
-                free(tmp), tmp = 0;
-                exitcode = 0; goto ft_elf64_exit;
-            }
-            sym_tb_s = shdr.sh_size / sizeof(Elf64_Sym);
-        }
-        else {
-            void *tmp1 = sym_tb;
-            sym_tb = ft_memjoin(sym_tb, tmp, shdr.sh_size, sym_tb_s);
-            if (!sym_tb) {
-                free(tmp), tmp = 0;
-                exitcode = 0; goto ft_elf64_exit;
-            }
-            sym_tb_s += shdr.sh_size / sizeof(Elf64_Sym);
-            free(tmp1), tmp1 = 0;
-        }
-
-        free(tmp), tmp = 0;
-    }
-
-    if (sym_tb_s == 0) {
+    Elf64_Sym *sym_tb = ft_elf64_extractSymbol(ehdr, shdr_tb, buffer, &sym_tb_s);
+    if (!sym_tb) {
         printf("%s: no symbols\n", g_prog);
         goto ft_elf64_exit;
     }
 
+    /* sort symbol table... */
     switch (g_opt_sort) {
         case (1): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_comparea); } break;
         case (2): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_compared); } break;
@@ -85,7 +56,7 @@ extern int ft_elf64(const char *buffer) {
 
     /* print symbol table...
      * */
-    if (!ft_elf64_print(shdr_tb, sym_tb, sym_tb_s, strtab)) {
+    if (!ft_elf64_printSymbol(shdr_tb, sym_tb, sym_tb_s, strtab)) {
         exitcode = 0; goto ft_elf64_exit;
     }
 
@@ -140,6 +111,55 @@ static void *ft_elf64_getStrtab(Elf64_Ehdr *ehdr, Elf64_Shdr *shdr_tb, const cha
     return (0);
 }
 
+static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *ehdr, Elf64_Shdr *shdr_tb, const char *buffer, size_t *sizeptr) {
+    /* null-check... */
+    if (!ehdr)    { return (0); }
+    if (!shdr_tb) { return (0); }
+    if (!buffer)  { return (0); }
+    if (!sizeptr) { return (0); }
+   
+    Elf64_Sym *sym_tb = 0;
+    for (size_t i = 0; i < ehdr->e_shnum; i++) {
+        Elf64_Shdr shdr = shdr_tb[i];
+        if (shdr.sh_type != SHT_SYMTAB) {
+            continue;
+        }
+
+        Elf64_Sym *tmp = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
+        if (!tmp) {
+            return (0);
+        }
+
+        if (!sym_tb) {
+            sym_tb = ft_memdup(tmp, shdr.sh_size);
+            if (!sym_tb) {
+                free(tmp), tmp = 0;
+                return (0);
+            }
+            *sizeptr = shdr.sh_size / sizeof(Elf64_Sym);
+        }
+        else {
+            void *tmp1 = sym_tb;
+            sym_tb = ft_memjoin(sym_tb, tmp, shdr.sh_size, *sizeptr);
+            if (!sym_tb) {
+                free(tmp), tmp = 0;
+                free(sym_tb), sym_tb = 0;
+                return (0);
+            }
+            *sizeptr += shdr.sh_size / sizeof(Elf64_Sym);
+            free(tmp1), tmp1 = 0;
+        }
+
+        free(tmp), tmp = 0;
+    }
+
+    if (!*sizeptr) {
+        return (0);
+    }
+
+    return (sym_tb);
+}
+
 static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
     const char *name0 = strtab + sym0.st_name;
     const char *name1 = strtab + sym1.st_name;
@@ -174,6 +194,62 @@ static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab)
     }
 
     return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) < 0);
+}
+
+static int ft_elf64_printSymbol(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
+    /* null-check... */
+    if (!shdr_tb) { return (0); }
+    if (!sym_tb)  { return (0); }
+    if (!strtab)  { return (0); }
+
+    for (size_t i = 0; i < size; i++) {
+        Elf64_Sym sym = sym_tb[i];
+        const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
+        if (st_type != STT_NOTYPE &&
+            st_type != STT_OBJECT &&
+            st_type != STT_FUNC &&
+            st_type != STT_COMMON
+        ) {
+            continue;
+        }
+
+        /* check for '--extern-only' flag... */
+        const uint8_t st_bind = ELF64_ST_BIND(sym.st_info);
+        if (g_opt_extern) {
+            if (st_bind == STB_LOCAL) {
+                continue;
+            }
+        }
+        
+        const char *st_name = strtab + sym.st_name;
+        if (!st_name || !st_name[0]) {
+            continue;
+        }
+
+        /* check for '--undefined-only' flag... */
+        if (g_opt_undef) {
+            if (sym.st_shndx != SHN_UNDEF) {
+                continue;
+            }
+        }
+
+        /* print address... */
+        if (sym.st_value) {
+            printf("%016lx ", sym.st_value);
+        }
+        else {
+            printf("%*c ", 16, ' ');
+        }
+
+        /* print type... */
+        const char letter_code = ft_elf64_getLetterCode(shdr_tb, sym);
+        printf("%c ", letter_code);
+
+        /* print name... */
+        printf("%s\n", strtab + sym.st_name);
+    }
+
+    return (1);
 }
 
 static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
@@ -253,52 +329,4 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
     }
 
     return (c);
-}
-
-
-static int ft_elf64_print(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
-    /* null-check... */
-    if (!shdr_tb) { return (0); }
-    if (!sym_tb)  { return (0); }
-    if (!strtab)  { return (0); }
-
-    for (size_t i = 0; i < size; i++) {
-        Elf64_Sym sym = sym_tb[i];
-        const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
-        if (st_type != STT_NOTYPE &&
-            st_type != STT_OBJECT &&
-            st_type != STT_FUNC &&
-            st_type != STT_COMMON
-        ) {
-            continue;
-        }
-
-        const char *st_name = strtab + sym.st_name;
-        if (!st_name || !st_name[0]) {
-            continue;
-        }
-
-        if (g_opt_undef) {
-            if (sym.st_shndx != SHN_UNDEF) {
-                continue;
-            }
-        }
-
-        /* print address... */
-        if (sym.st_value) {
-            printf("%016lx ", sym.st_value);
-        }
-        else {
-            printf("%*c ", 16, ' ');
-        }
-
-        /* print type... */
-        const char letter_code = ft_elf64_getLetterCode(shdr_tb, sym);
-        printf("%c ", letter_code);
-
-        /* print name... */
-        printf("%s\n", strtab + sym.st_name);
-    }
-
-    return (1);
 }
