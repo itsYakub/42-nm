@@ -82,19 +82,11 @@ int ft_file(const char *path) {
     }
 
     /* read file to a buffer... */
-    char *buffer = ft_calloc(stat.st_size + 1, sizeof(char));
+    char *buffer = mmap(0, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (!buffer) {
         close(fd), fd = 0;
         return (0);
     }
-
-    if (read(fd, buffer, stat.st_size) != stat.st_size) {
-        free(buffer), buffer = 0;
-        close(fd), fd = 0;
-        return (0);
-    }
-    
-    close(fd), fd = 0;
     
     /* execution... */
     if (ft_elf_getMagic(buffer)) {
@@ -111,7 +103,8 @@ int ft_file(const char *path) {
     }
     
     /* cleanup... */
-    free(buffer), buffer = 0;
+    munmap(buffer, stat.st_size), buffer = 0;
+    close(fd), fd = 0;
 
     return (1);
 }
