@@ -33,7 +33,9 @@ extern int ft_getopt(int ac, char **av) {
                 }
 
                 else {
-                    printf("%s: unknown command: %s\n", g_prog, *av);
+                    ft_putstr_fd(g_prog, 1);
+                    ft_putstr_fd(": unknown command: ", 1);
+                    ft_putendl_fd(*av, 1);
                     return (0);
                 }
             }
@@ -61,7 +63,9 @@ extern int ft_getopt(int ac, char **av) {
                         } break;
 
                         default: {
-                            printf("%s: unknown command: %s\n", g_prog, *av);
+                            ft_putstr_fd(g_prog, 1);
+                            ft_putstr_fd(": unknown command: ", 1);
+                            ft_putendl_fd(*av, 1);
                             return (0);
                         }
                     }

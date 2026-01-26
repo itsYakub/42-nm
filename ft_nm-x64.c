@@ -8,6 +8,8 @@ static void *ft_elf64_getStrtab(Elf64_Ehdr *, Elf64_Shdr *, const char *, const 
 
 static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *, Elf64_Shdr *, const char *, size_t *);
 
+static Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *, int (*)(Elf64_Sym, Elf64_Sym, const char *));
+
 static int ft_elf64_comparea(Elf64_Sym, Elf64_Sym, const char *);
 
 static int ft_elf64_compared(Elf64_Sym, Elf64_Sym, const char *);
@@ -19,7 +21,7 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 /* SECTION: api
  * */
 
-extern int ft_elf64(const char *buffer) {
+extern int ft_elf64(const char *buffer, const char *path) {
     int exitcode = 1;
 
     /* ehdr... */
@@ -43,7 +45,10 @@ extern int ft_elf64(const char *buffer) {
     size_t sym_tb_s = 0;
     Elf64_Sym *sym_tb = ft_elf64_extractSymbol(ehdr, shdr_tb, buffer, &sym_tb_s);
     if (!sym_tb) {
-        printf("%s: no symbols\n", g_prog);
+        ft_putstr_fd(g_prog, 1);
+        ft_putstr_fd(": ", 1);
+        ft_putstr_fd(path, 1);
+        ft_putendl_fd(": no symbols", 1);
         goto ft_elf64_exit;
     }
 
@@ -68,24 +73,6 @@ ft_elf64_exit:
     if (sym_tb)   { free(sym_tb), sym_tb = 0; }
     if (ehdr)     { free(ehdr), ehdr = 0; }
     return (exitcode);
-}
-
-extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
-    /* safety-check... */
-    if (!sym_tb) { return (0); }
-    if (!strtab) { return (0); }
-    if (!size)   { return (0); }
-
-    for (size_t i = 0; i < size - 1; i++) {
-        for (size_t j = 0; j < size - 1 - i; j++) {
-            if (compare(sym_tb[j], sym_tb[j + 1], strtab)) {
-                Elf64_Sym tmp = sym_tb[j];
-                sym_tb[j] = sym_tb[j + 1];
-                sym_tb[j + 1] = tmp;
-            }
-        }
-    }
-    return (sym_tb);
 }
 
 /* SECTION: static functions
@@ -157,6 +144,24 @@ static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *ehdr, Elf64_Shdr *shdr_tb, 
         return (0);
     }
 
+    return (sym_tb);
+}
+
+static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
+    /* safety-check... */
+    if (!sym_tb) { return (0); }
+    if (!strtab) { return (0); }
+    if (!size)   { return (0); }
+
+    for (size_t i = 0; i < size - 1; i++) {
+        for (size_t j = 0; j < size - 1 - i; j++) {
+            if (compare(sym_tb[j], sym_tb[j + 1], strtab)) {
+                Elf64_Sym tmp = sym_tb[j];
+                sym_tb[j] = sym_tb[j + 1];
+                sym_tb[j + 1] = tmp;
+            }
+        }
+    }
     return (sym_tb);
 }
 
@@ -235,18 +240,24 @@ static int ft_elf64_printSymbol(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const si
 
         /* print address... */
         if (sym.st_value) {
-            printf("%016lx ", sym.st_value);
+            size_t numlen = ft_numlen(sym.st_value, 16);
+            for (size_t i = 0; i < 16 - numlen; i++) {
+                ft_putchar_fd('0', 1);
+            }
+            ft_puthex_fd(sym.st_value, 1);
+            ft_putchar_fd(32, 1);
         }
         else {
-            printf("%*c ", 16, ' ');
+            ft_putstr_fd("                 ", 1);
         }
 
         /* print type... */
         const char letter_code = ft_elf64_getLetterCode(shdr_tb, sym);
-        printf("%c ", letter_code);
+        ft_putchar_fd(letter_code, 1);
+        ft_putchar_fd(32, 1);
 
         /* print name... */
-        printf("%s\n", strtab + sym.st_name);
+        ft_putendl_fd((char *) st_name, 1);
     }
 
     return (1);

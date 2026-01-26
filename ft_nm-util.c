@@ -87,3 +87,28 @@ extern int ft_strcmp(const char *s0, const char *s1) {
 extern int ft_islower(int c) {
     return (c >= 'a' && c <= 'z');
 }
+
+extern size_t ft_numlen(long long n, int base) {
+	int	result = 0;
+	while (n != 0) {
+		result++;
+		n /= base;
+	}
+
+	return (result);
+}
+
+extern int ft_puthex_fd(int n, int fd) {
+    const char base[] = "0123456789abcdef";
+    
+    if (n < 0) {
+        ft_putchar_fd('-', 1);
+        return (ft_puthex_fd(n * -1, fd));
+    }
+    
+    if (n / 16 > 0) {
+        ft_puthex_fd(n / 16, fd);
+    }
+    ft_putchar_fd(base[n % 16], 1);
+    return (1);
+}

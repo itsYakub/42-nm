@@ -33,13 +33,11 @@ extern int ft_getopt(int, char **);
 
 /* ./ft_nm-x64.c */
 
-extern int ft_elf32(const char *);
+extern int ft_elf32(const char *, const char *);
 
 /* ./ft_nm-x64.c */
 
-extern int ft_elf64(const char *);
-
-extern Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *, int (*)(Elf64_Sym, Elf64_Sym, const char *));
+extern int ft_elf64(const char *, const char *);
 
 /* ./ft_nm-util.c */
 
@@ -56,5 +54,9 @@ extern void *ft_memjoin(void *, void *, const size_t, const size_t);
 extern int ft_strcmp(const char *, const char *);
 
 extern int ft_islower(int);
+
+extern size_t ft_numlen(long long, int);
+
+extern int ft_puthex_fd(int, int);
 
 #endif /* _ft_nm_h_ */
