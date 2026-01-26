@@ -44,11 +44,15 @@ int main(int ac, char **av) {
             return (1);
         }
 
-        if (ft_lstsize(g_paths) > 1) { ft_putstr_fd(name, 1); ft_putendl_fd(":", 1); }
+        if (ft_lstsize(g_paths) > 1) {
+            ft_putstr_fd(name, 1);
+            ft_putendl_fd(":", 1);
+        }
 
-        if (!ft_file(name)) {
-            ft_lstclear(&g_paths, free), g_paths = 0;
-            return (1);
+        ft_file(name);
+        
+        if (ft_lstsize(g_paths) > 1) {
+            ft_putendl_fd("", 1);
         }
     }
 
