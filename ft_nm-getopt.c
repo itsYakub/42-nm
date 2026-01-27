@@ -2,6 +2,8 @@
 
 static int ft_getopt_help(void);
 
+static int ft_getopt_version(void);
+
 extern int ft_getopt(int ac, char **av) {
     (void) ac;
     g_prog = (const char *) *av;
@@ -37,6 +39,10 @@ extern int ft_getopt(int ac, char **av) {
                 else if (!ft_strcmp(opt, "help")) {
                     ft_getopt_help();
                 }
+                
+                else if (!ft_strcmp(opt, "version")) {
+                    ft_getopt_version();
+                }
 
                 else {
                     ft_putstr_fd(g_prog, 1);
@@ -71,6 +77,10 @@ extern int ft_getopt(int ac, char **av) {
 
                         case ('h'): {
                             ft_getopt_help();
+                        } break;
+                        
+                        case ('V'): {
+                            ft_getopt_version();
                         } break;
 
                         default: {
@@ -129,4 +139,18 @@ static int ft_getopt_help(void) {
         ft_lstclear(&g_paths, free), g_paths = 0;
     }
     exit(0);
+}
+
+static int ft_getopt_version(void) {
+    ft_putendl_fd("ft_nm (42 Warsaw) 1.0.0.", 1);
+    ft_putendl_fd("Project subject version: 3.5.", 1);
+    ft_putendl_fd("Project available under the GNU Lesser General Public License v.2.1.", 1);
+    ft_putendl_fd("Source code available under <https://github.com/itsYakub/42-nm>.", 1);
+
+    /* gently exit the program... */
+    if (g_paths) {
+        ft_lstclear(&g_paths, free), g_paths = 0;
+    }
+    exit(0);
+    
 }
