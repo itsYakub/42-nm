@@ -14,7 +14,9 @@ static int ft_elf64_comparea(Elf64_Sym, Elf64_Sym, const char *);
 
 static int ft_elf64_compared(Elf64_Sym, Elf64_Sym, const char *);
 
-static int ft_elf64_printSymbol(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
+static int ft_elf64_printSymbols(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
+
+static int ft_elf64_printSymbol(Elf64_Sym, const char *, const char);
 
 static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 
@@ -61,7 +63,7 @@ extern int ft_elf64(const char *buffer, const char *path) {
 
     /* print symbol table...
      * */
-    if (!ft_elf64_printSymbol(shdr_tb, sym_tb, sym_tb_s, strtab)) {
+    if (!ft_elf64_printSymbols(shdr_tb, sym_tb, sym_tb_s, strtab)) {
         exitcode = 0; goto ft_elf64_exit;
     }
 
@@ -201,7 +203,7 @@ static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab)
     return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) < 0);
 }
 
-static int ft_elf64_printSymbol(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
+static int ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
     /* null-check... */
     if (!shdr_tb) { return (0); }
     if (!sym_tb)  { return (0); }
@@ -209,54 +211,91 @@ static int ft_elf64_printSymbol(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const si
 
     for (size_t i = 0; i < size; i++) {
         Elf64_Sym sym = sym_tb[i];
-        const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
-        if (st_type != STT_NOTYPE &&
-            st_type != STT_OBJECT &&
-            st_type != STT_FUNC &&
-            st_type != STT_COMMON
+        const char  st_code = ft_elf64_getLetterCode(shdr_tb, sym);
+        const char *st_name = strtab + sym.st_name;
+
+        /* check if the symbol is null-symbol... */
+        if (!sym.st_name  &&
+            !sym.st_info  &&
+            !sym.st_other &&
+            !sym.st_shndx &&
+            !sym.st_value &&
+            !sym.st_size
         ) {
             continue;
         }
-
-        /* check for '--extern-only' flag... */
-        const uint8_t st_bind = ELF64_ST_BIND(sym.st_info);
-        if (g_opt_extern) {
-            if (st_bind == STB_LOCAL) {
-                continue;
+        
+        /* process '-u' / '--undefined-only'... */
+        if (g_opt_undef) {
+            if (sym.st_shndx == SHN_UNDEF) {
+                ft_elf64_printSymbol(sym, st_name, st_code);
             }
         }
         
-        const char *st_name = strtab + sym.st_name;
-        if (!st_name || !st_name[0]) {
-            continue;
-        }
-
-        /* check for '--undefined-only' flag... */
-        if (g_opt_undef) {
-            if (sym.st_shndx != SHN_UNDEF) {
-                continue;
+        /* process '-g' / '--extern-only'... */
+        else if (g_opt_extern) {
+            const uint8_t st_bind = ELF64_ST_BIND(sym.st_info);
+            if (st_bind == STB_GLOBAL ||
+                st_bind == STB_WEAK
+            ) {
+                ft_elf64_printSymbol(sym, st_name, st_code);
             }
         }
-
-        /* print address... */
-        if (sym.st_value) {
-            size_t numlen = ft_numlen(sym.st_value, 16);
-            for (size_t i = 0; i < 16 - numlen; i++) {
-                ft_putchar_fd('0', 1);
-            }
-            ft_puthex_fd(sym.st_value, 1);
-            ft_putchar_fd(32, 1);
+        
+        /* process '-a' / '--debug-syms'... */
+        else if (g_opt_debug) {
+            ft_elf64_printSymbol(sym, st_name, st_code);
         }
+
+        /* process default... */
         else {
-            ft_putstr_fd("                 ", 1);
+            const uint16_t st_shndx = sym.st_shndx;
+            if (st_shndx != SHN_LOPROC    &&
+                st_shndx != SHN_HIPROC    &&
+                st_shndx != SHN_BEFORE    &&
+                st_shndx != SHN_AFTER     &&
+                st_shndx != SHN_LOOS      &&
+                st_shndx != SHN_HIOS      &&
+                st_shndx != SHN_ABS       &&
+                st_shndx != SHN_COMMON    &&
+                st_shndx != SHN_XINDEX    &&
+                st_shndx != SHN_HIRESERVE
+            ) {
+                const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
+                if (st_type != STT_SECTION) {
+                    ft_elf64_printSymbol(sym, st_name, st_code);
+                }
+            }
         }
+    }
 
-        /* print type... */
-        const char letter_code = ft_elf64_getLetterCode(shdr_tb, sym);
-        ft_putchar_fd(letter_code, 1);
-        ft_putchar_fd(32, 1);
+    return (1);
+}
+static int ft_elf64_printSymbol(Elf64_Sym sym, const char *st_name, const char st_code) {
+    /* print address... */
+    if (sym.st_shndx == SHN_UNDEF) {
+        ft_putstr_fd("                 ", 1);
+    }
+    else {
+        size_t numlen = ft_numlen(sym.st_value, 16);
+        for (size_t i = 0; i < 16 - numlen; i++) {
+            ft_putchar_fd('0', 1);
+        }
+        if (sym.st_value > 0) {
+            ft_puthex_fd(sym.st_value, 1);
+        }
+        ft_putchar_fd(' ', 1);
+    }
 
-        /* print name... */
+    /* print code... */
+    ft_putchar_fd(st_code, 1);
+    ft_putchar_fd(' ', 1);
+
+    /* print name... */
+    if (!st_name && !st_name[0]) {
+        ft_putchar_fd('\n', 1);
+    }
+    else {
         ft_putendl_fd((char *) st_name, 1);
     }
 
@@ -293,35 +332,37 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
         case (SHN_COMMON): { if (!c) { c = 'C'; } } break;
     }
 
-    /* Section type/flags... */
-    Elf64_Shdr shdr = shdr_tb[st_shndx];
-    
-    const uint32_t sh_type = shdr.sh_type;
-    switch (sh_type) {
-        case (SHT_NOBITS): {
-            if (shdr.sh_flags == (SHF_ALLOC | SHF_WRITE)) {
-                if (!c) { c = 'B'; }
-            }
-        } break;
+    /* proceed if letter code wasn't found... */
+    if (!c) {
+        /* Section type/flags... */
+        Elf64_Shdr shdr = shdr_tb[st_shndx];
+        
+        const uint32_t sh_type = shdr.sh_type;
+        switch (sh_type) {
+            case (SHT_NOBITS): {
+                if (shdr.sh_flags == (SHF_ALLOC | SHF_WRITE)) {
+                    c = 'B';
+                }
+            } break;
 
-        case (SHT_PROGBITS): {
-            switch (shdr.sh_flags) {
-                case (SHF_ALLOC):
-                case (SHF_ALLOC | SHF_MERGE):
-                case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { if (!c) { c = 'R'; } } break;
+            case (SHT_PROGBITS): {
+                switch (shdr.sh_flags) {
+                    case (SHF_ALLOC):
+                    case (SHF_ALLOC | SHF_MERGE):
+                    case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { c = 'R'; } break;
 
-                case (SHF_ALLOC | SHF_WRITE):
-                case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { if (!c) { c = 'D'; } } break;
+                    case (SHF_ALLOC | SHF_WRITE):
+                    case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { c = 'D'; } break;
 
-                case (SHF_ALLOC | SHF_EXECINSTR):
-                case (SHF_ALLOC | SHF_EXECINSTR | SHF_GROUP):
-                case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { if (!c) { c = 'T'; } } break;
-            }
-        } break;
+                    case (SHF_ALLOC | SHF_EXECINSTR):
+                    case (SHF_ALLOC | SHF_EXECINSTR | SHF_GROUP):
+                    case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { c = 'T'; } break;
+                }
+            } break;
 
-        default: { if (!c) { c = 'D'; } } break;
+            default: { c = 'D'; } break;
+        }
     }
-
     /* check if symbol is global / local... */
     return (st_bind == STB_LOCAL ? ft_tolower(c) : c);
 }

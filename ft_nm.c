@@ -5,7 +5,7 @@
  * 3. [X] Find out a type of each symbol based on requirements from man
  * 4. [X] Get rid of printf in favor of something else (could be the simplest libft or ft_printf because it handles most of the cases pretty well)
  * 4. [X] Implement proper getopt
- * 5. [ ] Implement -a flag
+ * 5. [X] Implement -a flag
  * 6. [X] Implement -g flag
  * 7. [X] Implement -u flag
  * 8. [X] Implement -r flag
