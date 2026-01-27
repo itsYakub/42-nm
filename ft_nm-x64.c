@@ -267,6 +267,9 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
     /* null-check... */
     if (!shdr_tb) { return (0); }
     
+    /* result */
+    int c = 0;
+    
     /* Weak symbols... */
     const uint16_t st_shndx = sym.st_shndx;
     const uint8_t st_type   = ELF64_ST_TYPE(sym.st_info);
@@ -275,44 +278,29 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
         case (STB_GNU_UNIQUE): { return ('u'); }
         case (STB_WEAK): {
             if (st_shndx == SHN_UNDEF) {
-                if (st_type == STT_OBJECT) { return ('v'); }
-                else {
-                    return ('w');
-                }
+                c = (st_type == STT_OBJECT ? 'v' : 'w');
             }
             else {
-                if (st_type == STT_OBJECT) { return ('V'); }
-                else {
-                    return ('W');
-                }
+                c = (st_type == STT_OBJECT ? 'V' : 'W');
             }
         }
     }
 
     /* special indices... */
     switch (st_shndx) {
-        case (SHN_UNDEF): {
-            return (st_bind == STB_LOCAL ? 'u' : 'U');
-        }
-        case (SHN_ABS): {
-            return (st_bind == STB_LOCAL ? 'a' : 'A');
-        }
-        case (SHN_COMMON): {
-            return (st_bind == STB_LOCAL ? 'c' : 'C');
-        }
+        case (SHN_ABS):    { if (!c) { c = 'A'; } } break;
+        case (SHN_UNDEF):  { if (!c) { c = 'U'; } } break;
+        case (SHN_COMMON): { if (!c) { c = 'C'; } } break;
     }
-    
-    /* result */
-    int c = 0;
 
     /* Section type/flags... */
-    Elf64_Shdr shdr = shdr_tb[sym.st_shndx];
+    Elf64_Shdr shdr = shdr_tb[st_shndx];
     
     const uint32_t sh_type = shdr.sh_type;
     switch (sh_type) {
         case (SHT_NOBITS): {
             if (shdr.sh_flags == (SHF_ALLOC | SHF_WRITE)) {
-                c = 'B';
+                if (!c) { c = 'B'; }
             }
         } break;
 
@@ -320,24 +308,20 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
             switch (shdr.sh_flags) {
                 case (SHF_ALLOC):
                 case (SHF_ALLOC | SHF_MERGE):
-                case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { c = 'R'; } break;
+                case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { if (!c) { c = 'R'; } } break;
 
                 case (SHF_ALLOC | SHF_WRITE):
-                case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { c = 'D'; } break;
+                case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { if (!c) { c = 'D'; } } break;
 
                 case (SHF_ALLOC | SHF_EXECINSTR):
                 case (SHF_ALLOC | SHF_EXECINSTR | SHF_GROUP):
-                case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { c = 'T'; } break;
+                case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { if (!c) { c = 'T'; } } break;
             }
         } break;
 
-        default: { c = 'D'; } break;
+        default: { if (!c) { c = 'D'; } } break;
     }
 
     /* check if symbol is global / local... */
-    if (st_bind == STB_LOCAL) {
-        c = ft_tolower(c);
-    }
-
-    return (c);
+    return (st_bind == STB_LOCAL ? ft_tolower(c) : c);
 }
