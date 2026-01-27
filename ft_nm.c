@@ -1,20 +1,5 @@
 /* TODO:
- * 1. [X] Store the list of symbols to be printed as a seperate pointer.
- *        We can, technically speaking, memdup the whole symbol table of .symtab section and that should work fine.
- * 2. [X] Implement sort and reverse sort for symbols
- * 3. [X] Find out a type of each symbol based on requirements from man
- * 4. [X] Get rid of printf in favor of something else (could be the simplest libft or ft_printf because it handles most of the cases pretty well)
- * 4. [X] Implement proper getopt
- * 5. [X] Implement -a flag
- * 6. [X] Implement -g flag
- * 7. [X] Implement -u flag
- * 8. [X] Implement -r flag
- * 9. [X] Implement -p flag
- * 10. [ ] Implement -h
- * 11. [ ] Invalid flag should default to 'h'
- * 12. [X] Check if everything works on other compilers
- * 13. [X] Check if everything works for C++ executables
- * 14. [ ] Output should be set to a buffer instead of direct printing to stdout
+ * 1. [ ] Output should be set to a buffer instead of direct printing to stdout
  * */
 
 #include "./ft_nm.h"
