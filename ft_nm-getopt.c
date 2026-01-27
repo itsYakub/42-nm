@@ -1,5 +1,7 @@
 #include "./ft_nm.h"
 
+static int ft_getopt_help(void);
+
 extern int ft_getopt(int ac, char **av) {
     (void) ac;
     g_prog = (const char *) *av;
@@ -31,12 +33,17 @@ extern int ft_getopt(int ac, char **av) {
                         g_opt_sort = 2;
                     }
                 }
+                
+                else if (!ft_strcmp(opt, "help")) {
+                    ft_getopt_help();
+                }
 
                 else {
                     ft_putstr_fd(g_prog, 1);
-                    ft_putstr_fd(": unknown command: ", 1);
-                    ft_putendl_fd(*av, 1);
-                    return (0);
+                    ft_putstr_fd(": unrecognized option '", 1);
+                    ft_putstr_fd(*av, 1);
+                    ft_putendl_fd("'", 1);
+                    ft_getopt_help();
                 }
             }
             /* short-option... */
@@ -62,11 +69,16 @@ extern int ft_getopt(int ac, char **av) {
                             }            
                         } break;
 
+                        case ('h'): {
+                            ft_getopt_help();
+                        } break;
+
                         default: {
                             ft_putstr_fd(g_prog, 1);
-                            ft_putstr_fd(": unknown command: ", 1);
-                            ft_putendl_fd(*av, 1);
-                            return (0);
+                            ft_putstr_fd(": invalid option -- '", 1);
+                            ft_putstr_fd(*av, 1);
+                            ft_putendl_fd("'", 1);
+                            ft_getopt_help();
                         }
                     }
                 } while (*++opt);
@@ -84,4 +96,37 @@ extern int ft_getopt(int ac, char **av) {
         }
     }
     return (1);
+}
+
+static int ft_getopt_help(void) {
+    /* print usage... */
+    ft_putstr_fd("Usage: ", 1);
+    ft_putstr_fd(g_prog, 1);
+    ft_putendl_fd(" [option(s)] [file(s)]", 1);
+
+    /* print description... */
+    ft_putendl_fd(" List symbols in [file(s)] (a.out by default).", 1);
+    
+    /* print options... */
+    ft_putendl_fd(" The options are:", 1);
+    ft_putendl_fd("  -a, --debug-syms       Display debugger-only symbols", 1);
+    ft_putendl_fd("  -g, --extern-only      Display only external symbols", 1);
+    ft_putendl_fd("  -p, --no-sort          Do not sort the symbols", 1);
+    ft_putendl_fd("  -r, --reverse-sort     Reverse the sense of the sort", 1);
+    ft_putendl_fd("  -u, --undefined-only   Display only undefined symbols", 1);
+    ft_putendl_fd("  -h, --help             Display this information", 1);
+    ft_putendl_fd("  -V, --version          Display this program's version number", 1);
+    
+    /* print description... */
+    ft_putstr_fd(g_prog, 1);
+    ft_putendl_fd(": supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 elf64-little elf64-big elf32-little elf32-big elf64-bpfle elf64-bpfbe", 1);
+
+    /* bug reports... */
+    ft_putendl_fd("Report bugs to <https://github.com/itsYakub/42-nm/issues>.", 1);
+    
+    /* gently exit the program... */
+    if (g_paths) {
+        ft_lstclear(&g_paths, free), g_paths = 0;
+    }
+    exit(0);
 }
