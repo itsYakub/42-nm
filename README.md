@@ -5,7 +5,7 @@
 `ft_nm` is a re-implementation of `nm`, GNU utility for listing ELF-file symbol tables.
 It behaves almost exactly like a regular `nm`, with support for:
 
-- `-h`, `-a`, `-g`, `-u`, `-r`, `-p` flags
+- `-h`, `-V`, `-a`, `-g`, `-u`, `-r`, `-p` flags
 - reading ELF object and executable files
 
 For more information refer to `man 1 nm`.
@@ -45,7 +45,19 @@ $ make test
 You can also test the project against any other binary on the system by typing:
 
 ```tty
-$ make test TEST_FILE={ filename }
+$ make test TEST_FILES={ file(s) }
+```
+
+To test the project against certain options type:
+
+```tty
+$ make test TEST_FLAGS={ flag(s) }
+```
+
+Lastly, you can freely mix those options together:
+
+```tty
+$ make test TEST_FLAGS={ flag(s) } TEST_FILES={ file(s) }
 ```
 
 ## Sources:
@@ -54,4 +66,6 @@ $ make test TEST_FILE={ filename }
 - [elf_format_cheatsheet.md](https://gist.github.com/x0nu11byt3/bcb35c3de461e5fb66173071a2379779)
 - [Executable and Linkable Format](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
 
-## 
+## LICENCE
+
+This project is licenced under the [GNU LESSER GENERAL PUBLIC LICENCE](./LICENCE).
