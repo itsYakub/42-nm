@@ -345,7 +345,7 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
                 }
             } break;
 
-            case (SHT_PROGBITS): {
+            default: {
                 switch (shdr.sh_flags) {
                     case (SHF_ALLOC):
                     case (SHF_ALLOC | SHF_MERGE):
@@ -359,8 +359,6 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
                     case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { c = 'T'; } break;
                 }
             } break;
-
-            default: { c = 'D'; } break;
         }
     }
     /* check if symbol is global / local... */
