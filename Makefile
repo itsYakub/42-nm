@@ -58,6 +58,27 @@ test : all
 	@-diff <(nm $(TEST_FLAGS) $(TEST_FILES)) <(./$(TARGET) $(TEST_FLAGS) $(TEST_FILES))
 
 
+.PHONY : tests
+
+tests : all
+	$(info Test: no flags)
+	@make -C . test
+	
+	$(info Test: -a, --debug-syms)
+	@make -C . test TEST_FLAGS=-a
+	
+	$(info Test: -g, --extern-only)
+	@make -C . test TEST_FLAGS=-g
+	
+	$(info Test: -u, --undefined-only)
+	@make -C . test TEST_FLAGS=-u
+	
+	$(info Test: -r, --reverse-sort)
+	@make -C . test TEST_FLAGS=-r
+	
+	$(info Test: -p, --no-sort)
+	@make -C . test TEST_FLAGS=-p
+
 # ========
 
 $(TARGET) : $(OBJS)
