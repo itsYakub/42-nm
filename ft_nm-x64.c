@@ -43,10 +43,7 @@ extern char *ft_elf64(const char *buffer, const char *path) {
     if (!shstrtab) { goto ft_elf64_exit; }
 
     const char *dynstr = ft_elf64_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".dynstr");
-    if (!dynstr) { goto ft_elf64_exit; }
-    
     const char *strtab = ft_elf64_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
-    if (!strtab) { goto ft_elf64_exit; }
 
     /* extract symbol table... */
     size_t sym_tb_s = 0;
@@ -418,6 +415,12 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
             } break;
         }
     }
+
+    /* lastly, if no letter code was assigned (common for object files)... */
+    if (!c) {
+        c = 'N';
+    }
+    
     /* check if symbol is global / local... */
     return (st_bind == STB_LOCAL ? ft_tolower(c) : c);
 }

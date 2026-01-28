@@ -418,6 +418,12 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
             } break;
         }
     }
+    
+    /* lastly, if no letter code was assigned (common for object files)... */
+    if (!c) {
+        c = 'N';
+    }
+    
     /* check if symbol is global / local... */
     return (st_bind == STB_LOCAL ? ft_tolower(c) : c);
 }

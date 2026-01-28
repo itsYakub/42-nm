@@ -33,7 +33,7 @@ extern int ft_getopt(int, char **);
 
 /* ./ft_nm-x64.c */
 
-extern int ft_elf32(const char *, const char *);
+extern char *ft_elf32(const char *, const char *);
 
 /* ./ft_nm-x64.c */
 
