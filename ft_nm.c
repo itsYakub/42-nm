@@ -1,7 +1,3 @@
-/* TODO:
- * 1. [ ] Output should be set to a buffer instead of direct printing to stdout
- * */
-
 #include "./ft_nm.h"
 
 /* SECTION: api
