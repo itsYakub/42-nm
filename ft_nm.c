@@ -29,19 +29,15 @@ int main(int ac, char **av) {
             return (1);
         }
 
-        if (ft_lstsize(g_paths) > 1) {
-            ft_putstr_fd(name, 1);
-            ft_putendl_fd(":", 1);
-        }
-
         char *output = ft_file(name);
         if (output) {
+            if (ft_lstsize(g_paths) > 1) {
+                ft_putchar_fd('\n', 1);
+                ft_putstr_fd(name, 1);
+                ft_putendl_fd(":", 1);
+            }
             ft_putstr_fd(output, 1);
             free(output), output = 0;
-        }
-        
-        if (ft_lstsize(g_paths) > 1) {
-            ft_putendl_fd("", 1);
         }
     }
 
