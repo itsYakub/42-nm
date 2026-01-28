@@ -282,7 +282,7 @@ static int ft_elf32_printSymbol(Elf32_Sym sym, const char *st_name, const char s
             ft_putchar_fd('0', 1);
         }
         if (sym.st_value > 0) {
-            ft_puthex_fd(sym.st_value, 1);
+            // ft_puthex_fd(sym.st_value, 1);
         }
         ft_putchar_fd(' ', 1);
     }

@@ -25,7 +25,7 @@ extern int g_opt_sort;
 
 /* ./ft_nm.c */
 
-extern int ft_file(const char *);
+extern char *ft_file(const char *);
 
 /* ./ft_nm-getopt.c */
 
@@ -37,7 +37,7 @@ extern int ft_elf32(const char *, const char *);
 
 /* ./ft_nm-x64.c */
 
-extern int ft_elf64(const char *, const char *);
+extern char *ft_elf64(const char *, const char *);
 
 /* ./ft_nm-util.c */
 
@@ -57,6 +57,8 @@ extern int ft_islower(int);
 
 extern size_t ft_numlen(long long, int);
 
-extern int ft_puthex_fd(int, int);
+extern char *ft_utoa_hex(unsigned long long);
+
+extern char *ft_strjoin_free(char *, const char *);
 
 #endif /* _ft_nm_h_ */

@@ -98,17 +98,40 @@ extern size_t ft_numlen(long long n, int base) {
 	return (result);
 }
 
-extern int ft_puthex_fd(int n, int fd) {
+extern char *ft_utoa_hex(unsigned long long n) {
     const char base[] = "0123456789abcdef";
-    
-    if (n < 0) {
-        ft_putchar_fd('-', 1);
-        return (ft_puthex_fd(n * -1, fd));
+
+    /* length of the number in base16... */
+    size_t n_l = ft_numlen(n, 16);
+
+    /* output string... */
+    char *output = ft_calloc(n_l + 1, sizeof(char));
+    if (!output) { return (0); }
+
+    /* append characters to array... */
+    for (size_t i = 0; n; i++, n /= 16) {
+        output[i] = base[n % 16];
     }
-    
-    if (n / 16 > 0) {
-        ft_puthex_fd(n / 16, fd);
+
+    /* reverse the array... */
+    for (size_t i = 0; i < n_l / 2; i++) {
+        char tmp = output[i];
+        output[i] = output[n_l - 1 - i];
+        output[n_l - 1 - i] = tmp;
     }
-    ft_putchar_fd(base[n % 16], 1);
-    return (1);
+
+    return (output);
+}
+
+/* NOTE:
+ *  dst pointer is going to be freed during the execution...
+ * */
+extern char *ft_strjoin_free(char *dst, const char *src) {
+    char *tmp = ft_strjoin(dst, src);
+    if (!tmp) {
+        return (0);
+    }
+
+    free(dst), dst = tmp;
+    return (tmp);
 }

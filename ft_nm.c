@@ -34,7 +34,11 @@ int main(int ac, char **av) {
             ft_putendl_fd(":", 1);
         }
 
-        ft_file(name);
+        char *output = ft_file(name);
+        if (output) {
+            ft_putstr_fd(output, 1);
+            free(output), output = 0;
+        }
         
         if (ft_lstsize(g_paths) > 1) {
             ft_putendl_fd("", 1);
@@ -45,7 +49,7 @@ int main(int ac, char **av) {
     return (0);
 }
 
-int ft_file(const char *path) {
+extern char *ft_file(const char *path) {
     /* setup... */
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
@@ -78,10 +82,11 @@ int ft_file(const char *path) {
     }
     
     /* execution... */
+    char *output = 0;
     if (ft_elf_getMagic(buffer)) {
         switch (ft_elf_getArch(buffer)) {
             case (ELFCLASS32): { ft_elf32(buffer, path); } break;
-            case (ELFCLASS64): { ft_elf64(buffer, path); } break;
+            case (ELFCLASS64): { output = ft_elf64(buffer, path); } break;
         }
     }
     else {
@@ -95,7 +100,7 @@ int ft_file(const char *path) {
     munmap(buffer, stat.st_size), buffer = 0;
     close(fd), fd = 0;
 
-    return (1);
+    return (output);
 }
 
 
