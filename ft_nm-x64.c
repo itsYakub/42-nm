@@ -14,7 +14,7 @@ static int ft_elf64_comparea(const char *, const char *);
                                          
 static int ft_elf64_compared(const char *, const char *);
 
-static char *ft_elf64_printSymbols(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
+static char *ft_elf64_printSymbols(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *, const char *);
 
 static char *ft_elf64_printSymbol(Elf64_Sym, const char *, const char);
 
@@ -60,7 +60,7 @@ extern char *ft_elf64(const char *buffer, const char *path) {
 
     /* print symbol table...
      * */
-    output = ft_elf64_printSymbols(shdr_tb, sym_tb, sym_tb_s, strtab);
+    output = ft_elf64_printSymbols(shdr_tb, sym_tb, sym_tb_s, shstrtab, strtab);
     if (!output) { goto ft_elf64_exit; }
 
 ft_elf64_exit:
@@ -226,7 +226,7 @@ static int ft_elf64_compared(const char *name0, const char *name1) {
     return (ft_strcmp(name0, name1) < 0);
 }
 
-static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
+static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *shstrtab, const char *strtab) {
     /* null-check... */
     if (!shdr_tb) { return (0); }
     if (!sym_tb)  { return (0); }
@@ -243,8 +243,8 @@ static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const
 
     for (size_t i = 0; i < size; i++) {
         Elf64_Sym sym = sym_tb[i];
-        const char  st_code = ft_elf64_getLetterCode(shdr_tb, sym);
         const char *st_name = strtab + sym.st_name;
+        char        st_code = ft_elf64_getLetterCode(shdr_tb, sym);
 
         /* check if the symbol is null-symbol... */
         if (!sym.st_name  &&
@@ -279,6 +279,16 @@ static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const
         
         /* process '-a' / '--debug-syms'... */
         else if (g_opt_debug) {
+            if (!*st_name) {
+                const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
+                if (st_type == STT_SECTION) {
+                    st_name = shstrtab + shdr_tb[sym.st_shndx].sh_name;
+                    /* if symbol is debug symbol: 'n' should be 'N'... */
+                    if (st_code == 'n') {
+                        st_code = ft_toupper(st_code);
+                    }
+                }
+            }
             tmp = ft_elf64_printSymbol(sym, st_name, st_code);
         }
 
