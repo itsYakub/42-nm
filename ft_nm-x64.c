@@ -8,11 +8,11 @@ static void *ft_elf64_getStrtab(Elf64_Ehdr *, Elf64_Shdr *, const char *, const 
 
 static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *, Elf64_Shdr *, const char *, size_t *);
 
-static Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *, int (*)(Elf64_Sym, Elf64_Sym, const char *));
+static Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *);
 
-static int ft_elf64_comparea(Elf64_Sym, Elf64_Sym, const char *);
-
-static int ft_elf64_compared(Elf64_Sym, Elf64_Sym, const char *);
+static int ft_elf64_comparea(const char *, const char *);
+                                         
+static int ft_elf64_compared(const char *, const char *);
 
 static char *ft_elf64_printSymbols(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *);
 
@@ -56,11 +56,7 @@ extern char *ft_elf64(const char *buffer, const char *path) {
     }
 
     /* sort symbol table... */
-    switch (g_opt_sort) {
-        case (1): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_comparea); } break;
-        case (2): { sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab, ft_elf64_compared); } break;
-        default:  { /* ...don't sort... */ } break;
-    }
+    sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab);
 
     /* print symbol table...
      * */
@@ -149,15 +145,25 @@ static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *ehdr, Elf64_Shdr *shdr_tb, 
     return (sym_tb);
 }
 
-static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab, int (*compare)(Elf64_Sym, Elf64_Sym, const char *)) {
+static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
     /* safety-check... */
     if (!sym_tb) { return (0); }
     if (!strtab) { return (0); }
     if (!size)   { return (0); }
+    
+    int (*compare)(const char *, const char *);
+    switch (g_opt_sort) {
+        case (1): { compare = ft_elf64_comparea; } break;
+        case (2): { compare = ft_elf64_compared; } break;
+        default:  { return (sym_tb); }
+    }
 
     for (size_t i = 0; i < size - 1; i++) {
         for (size_t j = 0; j < size - 1 - i; j++) {
-            if (compare(sym_tb[j], sym_tb[j + 1], strtab)) {
+            
+            const char *name0 = strtab + sym_tb[j].st_name;
+            const char *name1 = strtab + sym_tb[j + 1].st_name;
+            if (compare(name0, name1)) {
                 Elf64_Sym tmp = sym_tb[j];
                 sym_tb[j] = sym_tb[j + 1];
                 sym_tb[j + 1] = tmp;
@@ -167,40 +173,40 @@ static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char
     return (sym_tb);
 }
 
-static int ft_elf64_comparea(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
-    const char *name0 = strtab + sym0.st_name;
-    const char *name1 = strtab + sym1.st_name;
+static int ft_elf64_comparea(const char *name0, const char *name1) {
+    const char *n0 = name0;
+    const char *n1 = name1;
 
-    while (*name0 || *name1) {
-        while (*name0 && !ft_isalnum(*name0)) { name0++; }
-        while (*name1 && !ft_isalnum(*name1)) { name1++; }
-        if (ft_tolower(*name0) != ft_tolower(*name1)) {
-            return (ft_tolower(*name0) > ft_tolower(*name1));
+    while (*n0 || *n1) {
+        while (*n0 && !ft_isalnum(*n0)) { n0++; }
+        while (*n1 && !ft_isalnum(*n1)) { n1++; }
+        if (ft_tolower(*n0) != ft_tolower(*n1)) {
+            return (ft_tolower(*n0) > ft_tolower(*n1));
         }
 
-        if (*name0) { name0++; }
-        if (*name1) { name1++; }
+        if (*n0) { n0++; }
+        if (*n1) { n1++; }
     }
 
-    return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) > 0);
+    return (ft_strcmp(name0, name1) > 0);
 }
 
-static int ft_elf64_compared(Elf64_Sym sym0, Elf64_Sym sym1, const char *strtab) {
-    const char *name0 = strtab + sym0.st_name;
-    const char *name1 = strtab + sym1.st_name;
+static int ft_elf64_compared(const char *name0, const char *name1) {
+    const char *n0 = name0;
+    const char *n1 = name1;
 
-    while (*name0 || *name1) {
-        while (*name0 && !ft_isalnum(*name0)) { name0++; }
-        while (*name1 && !ft_isalnum(*name1)) { name1++; }
-        if (ft_tolower(*name0) != ft_tolower(*name1)) {
-            return (ft_tolower(*name0) < ft_tolower(*name1));
+    while (*n0 || *n1) {
+        while (*n0 && !ft_isalnum(*n0)) { n0++; }
+        while (*n1 && !ft_isalnum(*n1)) { n1++; }
+        if (ft_tolower(*n0) != ft_tolower(*n1)) {
+            return (ft_tolower(*n0) < ft_tolower(*n1));
         }
 
-        if (*name0) { name0++; }
-        if (*name1) { name1++; }
+        if (*n0) { n0++; }
+        if (*n1) { n1++; }
     }
 
-    return (ft_strcmp(strtab + sym0.st_name, strtab + sym1.st_name) < 0);
+    return (ft_strcmp(name0, name1) < 0);
 }
 
 static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
