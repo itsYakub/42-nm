@@ -1,5 +1,9 @@
 # ========
 
+SHELL	= /usr/bin/zsh
+
+# ========
+
 CC		= cc
 CFLAGS	= -Wall -Wextra -Werror -ggdb3
 LFLAGS	= -lft
@@ -50,13 +54,13 @@ clean :
 	rm -f $(OBJS)
 
 
-TEST_FILES	= $(TARGET)
+TEST_FILES	=
 TEST_FLAGS	=
 
 .PHONY : test
 
 test : all
-	@-diff <(nm $(TEST_FLAGS) $(TEST_FILES)) <(./$(TARGET) $(TEST_FLAGS) $(TEST_FILES))
+	@-diff <(/bin/nm $(TEST_FLAGS) $(TEST_FILES)) <($(TARGET) $(TEST_FLAGS) $(TEST_FILES))
 
 
 .PHONY : tests
