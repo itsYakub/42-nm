@@ -399,8 +399,17 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
     const uint16_t st_shndx = sym.st_shndx;
     const uint8_t st_type   = ELF32_ST_TYPE(sym.st_info);
     const uint8_t st_bind   = ELF32_ST_BIND(sym.st_info);
+
+    /* special indices... */
+    switch (st_shndx) {
+        case (SHN_ABS):    { if (!c) { c = 'A'; } } break;
+        case (SHN_UNDEF):  { if (!c) { c = 'U'; } } break;
+        case (SHN_COMMON): { if (!c) { c = 'C'; } } break;
+    }
+
+    /* symbol binding... */
     switch (st_bind) {
-        case (STB_GNU_UNIQUE): { return ('u'); }
+        case (STB_GNU_UNIQUE): { c = 'u'; } break;
         case (STB_WEAK): {
             if (st_shndx == SHN_UNDEF) {
                 c = (st_type == STT_OBJECT ? 'v' : 'w');
@@ -408,14 +417,13 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
             else {
                 c = (st_type == STT_OBJECT ? 'V' : 'W');
             }
-        }
+        } break;
     }
 
-    /* special indices... */
-    switch (st_shndx) {
-        case (SHN_ABS):    { if (!c) { c = 'A'; } } break;
-        case (SHN_UNDEF):  { if (!c) { c = 'U'; } } break;
-        case (SHN_COMMON): { if (!c) { c = 'C'; } } break;
+    /* symbol types... */
+    switch (st_type) {
+        case (STT_GNU_IFUNC): { c = 'i'; } break;
+        case (STT_FILE): { c = 'a'; } break;
     }
 
     /* proceed if letter code wasn't found... */
@@ -426,33 +434,30 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
         const uint32_t sh_type = shdr.sh_type;
         switch (sh_type) {
             case (SHT_NOBITS): {
-                if (shdr.sh_flags == (SHF_ALLOC | SHF_WRITE)) {
-                    c = 'B';
-                }
+                c = 'B';
             } break;
 
             default: {
+                if (!(shdr.sh_flags & SHF_ALLOC)) { c = 'N'; }
                 switch (shdr.sh_flags) {
                     case (SHF_ALLOC):
                     case (SHF_ALLOC | SHF_MERGE):
                     case (SHF_ALLOC | SHF_MERGE | SHF_STRINGS): { c = 'R'; } break;
 
-                    case (SHF_ALLOC | SHF_WRITE):
-                    case (SHF_ALLOC | SHF_WRITE | SHF_TLS): { c = 'D'; } break;
+                    case (SHF_WRITE):
+                    case (SHF_WRITE | SHF_ALLOC):
+                    case (SHF_WRITE | SHF_ALLOC | SHF_TLS): { c = 'D'; } break;
 
-                    case (SHF_ALLOC | SHF_EXECINSTR):
-                    case (SHF_ALLOC | SHF_EXECINSTR | SHF_GROUP):
-                    case (SHF_ALLOC | SHF_EXECINSTR | SHF_WRITE): { c = 'T'; } break;
+                    case (SHF_EXECINSTR):
+                    case (SHF_EXECINSTR | SHF_ALLOC):
+                    case (SHF_EXECINSTR | SHF_ALLOC | SHF_GROUP):
+                    case (SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE): { c = 'T'; } break;
                 }
             } break;
         }
     }
 
-    /* lastly, if no letter code was assigned (common for object files)... */
-    if (!c) {
-        c = 'N';
-    }
-    
+
     /* check if symbol is global / local... */
     return (st_bind == STB_LOCAL ? ft_tolower(c) : c);
 }
