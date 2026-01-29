@@ -283,9 +283,9 @@ static char *ft_elf64_printSymbols(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const
                 const uint8_t st_type = ELF64_ST_TYPE(sym.st_info);
                 if (st_type == STT_SECTION) {
                     st_name = shstrtab + shdr_tb[sym.st_shndx].sh_name;
-                    /* if symbol is debug symbol: 'n' should be 'N'... */
-                    if (st_code == 'n') {
-                        st_code = ft_toupper(st_code);
+                    /* if symbol is debug symbol... */
+                    if (!ft_strncmp(st_name, ".debug_", 7)) {
+                        st_code = 'N';
                     }
                 }
             }
