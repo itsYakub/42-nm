@@ -75,17 +75,25 @@ extern char *ft_file(const char *path) {
     
     /* execution... */
     char *output = 0;
+
+    /* check if the file is ELF file... */
     if (ft_elf_getMagic(buffer)) {
         switch (ft_elf_getArch(buffer)) {
-            case (ELFCLASS32): { ft_elf32(buffer, path); } break;
+            case (ELFCLASS32): { output = ft_elf32(buffer, path); } break;
             case (ELFCLASS64): { output = ft_elf64(buffer, path); } break;
         }
     }
     else {
-        ft_putstr_fd(g_prog, 1);
-        ft_putstr_fd(": ", 1);
-        ft_putstr_fd(path, 1);
-        ft_putendl_fd(": file format not recognized", 1);
+        /* check if file is "ar" file... */
+        if (ft_ar_getMagic(buffer)) {
+            output = ft_ar(buffer, stat.st_size);
+        }
+        else {
+            ft_putstr_fd(g_prog, 1);
+            ft_putstr_fd(": ", 1);
+            ft_putstr_fd(path, 1);
+            ft_putendl_fd(": file format not recognized", 1);
+        }
     }
     
     /* cleanup... */

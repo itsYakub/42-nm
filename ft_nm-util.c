@@ -14,6 +14,13 @@ extern int ft_elf_getMagic(const char *buffer) {
     return (1);
 }
 
+extern int ft_ar_getMagic(const char *buffer) {
+    /* null-check... */
+    if (!buffer) { return (0); }
+
+    return (ft_strcmp(ARMAG, buffer) == 0);
+}
+
 extern int ft_elf_getArch(const char *buffer) {
     /* null-check... */
     if (!buffer) { return (0); }

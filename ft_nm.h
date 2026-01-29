@@ -7,6 +7,7 @@
 # include <errno.h>
 # include <string.h>     /* strerror() */
 #
+# include <ar.h>
 # include <elf.h>
 # include <fcntl.h>      /* open(), close() */
 # include <unistd.h>     /* write(), getpagesize() */
@@ -31,7 +32,7 @@ extern char *ft_file(const char *);
 
 extern int ft_getopt(int, char **);
 
-/* ./ft_nm-x64.c */
+/* ./ft_nm-x32.c */
 
 extern char *ft_elf32(const char *, const char *);
 
@@ -39,9 +40,15 @@ extern char *ft_elf32(const char *, const char *);
 
 extern char *ft_elf64(const char *, const char *);
 
+/* ./ft_nm-ar.c */
+
+extern char *ft_ar(const char *, const size_t);
+
 /* ./ft_nm-util.c */
 
 extern int ft_elf_getMagic(const char *);
+
+extern int ft_ar_getMagic(const char *);
 
 extern int ft_elf_getArch(const char *);
 

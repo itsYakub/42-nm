@@ -11,6 +11,7 @@ OBJS	= $(SRCS:.c=.o)
 SRCS	= ./ft_nm.c \
 		  ./ft_nm-x32.c \
 		  ./ft_nm-x64.c \
+		  ./ft_nm-ar.c \
 		  ./ft_nm-util.c \
 		  ./ft_nm-getopt.c
 

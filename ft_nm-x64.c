@@ -25,7 +25,6 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 
 extern char *ft_elf64(const char *buffer, const char *path) {
     if (!buffer) { return (0); }
-    if (!path)   { return (0); }
 
     /* output pointer... */
     char *output = 0;
