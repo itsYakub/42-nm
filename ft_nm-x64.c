@@ -8,7 +8,7 @@ static void *ft_elf64_getStrtab(Elf64_Ehdr *, Elf64_Shdr *, const char *, const 
 
 static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *, Elf64_Shdr *, const char *, size_t *);
 
-static Elf64_Sym *ft_elf64_sort(Elf64_Sym *, const size_t, const char *);
+static Elf64_Sym *ft_elf64_sort(Elf64_Shdr *, Elf64_Sym *, const size_t, const char *, const char *);
 
 static int ft_elf64_comparea(const char *, const char *);
                                          
@@ -56,7 +56,7 @@ extern char *ft_elf64(const char *buffer, const char *path) {
     }
 
     /* sort symbol table... */
-    sym_tb = ft_elf64_sort(sym_tb, sym_tb_s, strtab);
+    sym_tb = ft_elf64_sort(shdr_tb, sym_tb, sym_tb_s, shstrtab, strtab);
 
     /* print symbol table...
      * */
@@ -145,11 +145,13 @@ static Elf64_Sym *ft_elf64_extractSymbol(Elf64_Ehdr *ehdr, Elf64_Shdr *shdr_tb, 
     return (sym_tb);
 }
 
-static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char *strtab) {
+static Elf64_Sym *ft_elf64_sort(Elf64_Shdr *shdr_tb, Elf64_Sym *sym_tb, const size_t size, const char *shstrtab, const char *strtab) {
     /* safety-check... */
-    if (!sym_tb) { return (0); }
-    if (!strtab) { return (0); }
-    if (!size)   { return (0); }
+    if (!shdr_tb)  { return (0); }
+    if (!sym_tb)   { return (0); }
+    if (!shstrtab) { return (0); }
+    if (!strtab)   { return (0); }
+    if (!size)     { return (0); }
     
     int (*compare)(const char *, const char *);
     switch (g_opt_sort) {
@@ -161,8 +163,23 @@ static Elf64_Sym *ft_elf64_sort(Elf64_Sym *sym_tb, const size_t size, const char
     for (size_t i = 0; i < size - 1; i++) {
         for (size_t j = 0; j < size - 1 - i; j++) {
             
-            const char *name0 = strtab + sym_tb[j].st_name;
-            const char *name1 = strtab + sym_tb[j + 1].st_name;
+            Elf64_Sym sym0 = sym_tb[j];
+            const char *name0 = strtab + sym0.st_name;
+            if (!*name0) {
+                const uint8_t st_type = ELF64_ST_TYPE(sym0.st_info);
+                if (g_opt_debug && st_type == STT_SECTION) {
+                    name0 = shstrtab + shdr_tb[sym0.st_shndx].sh_name;
+                }
+            }
+
+            Elf64_Sym sym1 = sym_tb[j + 1];
+            const char *name1 = strtab + sym1.st_name;
+            if (!*name1) {
+                const uint8_t st_type = ELF64_ST_TYPE(sym1.st_info);
+                if (g_opt_debug && st_type == STT_SECTION) {
+                    name1 = shstrtab + shdr_tb[sym1.st_shndx].sh_name;
+                }
+            }
             if (compare(name0, name1)) {
                 Elf64_Sym tmp = sym_tb[j];
                 sym_tb[j] = sym_tb[j + 1];
