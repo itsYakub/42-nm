@@ -23,7 +23,7 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *, Elf32_Sym);
 /* SECTION: api
  * */
 
-extern char *ft_elf32(const char *buffer, const char *path) {
+extern char *ft_elf32(const char *buffer) {
     if (!buffer) { return (0); }
 
     /* output pointer... */
@@ -48,10 +48,7 @@ extern char *ft_elf32(const char *buffer, const char *path) {
     size_t sym_tb_s = 0;
     Elf32_Sym *sym_tb = ft_elf32_extractSymbol(ehdr, shdr_tb, buffer, &sym_tb_s);
     if (!sym_tb) {
-        ft_putstr_fd(g_prog, 1);
-        ft_putstr_fd(": ", 1);
-        ft_putstr_fd(path, 1);
-        ft_putendl_fd(": no symbols", 1);
+        g_errno = 4;
         goto ft_elf32_exit;
     }
 
@@ -437,6 +434,11 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
                 c = 'B';
             } break;
 
+            case (SHT_REL):
+            case (SHT_RELA): {
+                c = 'R';
+            } break;
+
             default: {
                 if (!(shdr.sh_flags & SHF_ALLOC)) { c = 'N'; }
                 switch (shdr.sh_flags) {
@@ -446,12 +448,15 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
 
                     case (SHF_WRITE):
                     case (SHF_WRITE | SHF_ALLOC):
-                    case (SHF_WRITE | SHF_ALLOC | SHF_TLS): { c = 'D'; } break;
+                    case (SHF_WRITE | SHF_ALLOC | SHF_TLS):
+                    case (SHF_WRITE | SHF_ALLOC | SHF_GNU_RETAIN): { c = 'D'; } break;
 
                     case (SHF_EXECINSTR):
                     case (SHF_EXECINSTR | SHF_ALLOC):
                     case (SHF_EXECINSTR | SHF_ALLOC | SHF_GROUP):
                     case (SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE): { c = 'T'; } break;
+
+                    default: { c = 'R'; } break;
                 }
             } break;
         }

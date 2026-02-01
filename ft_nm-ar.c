@@ -1,6 +1,5 @@
 /* TODO:
- * [ ] 1. Fix '-a' flag
- * [ ] 2. Proper error checking
+ * 1. [X] check why /lib/libc.a doesn't work
  * */
 
 #include "./ft_nm.h"
@@ -70,16 +69,21 @@ extern char *ft_ar(const char *buffer, const size_t size) {
             /* repeat the steps of the regular ELF file parsing... */
             char *tmp0 = 0;
             switch (ft_elf_getArch(cursor)) {
-                case (ELFCLASS32): { tmp0 = ft_elf32(cursor, ar_name); } break;
-                case (ELFCLASS64): { tmp0 = ft_elf64(cursor, ar_name); } break;
+                case (ELFCLASS32): { tmp0 = ft_elf32(cursor); } break;
+                case (ELFCLASS64): { tmp0 = ft_elf64(cursor); } break;
             }
 
-            /* ...and append the results to the output string */
-            output = ft_strjoin_free(output, "\n");
-            output = ft_strjoin_free(output, ar_name);
-            output = ft_strjoin_free(output, ":\n");
-            output = ft_strjoin_free(output, tmp0);
-            free(tmp0), tmp0 = 0;
+            if (!tmp0) {
+                ft_perror(ar_name);
+            }
+            else {
+                /* ...and append the results to the output string */
+                output = ft_strjoin_free(output, "\n");
+                output = ft_strjoin_free(output, ar_name);
+                output = ft_strjoin_free(output, ":\n");
+                output = ft_strjoin_free(output, tmp0);
+                free(tmp0), tmp0 = 0;
+            }
         }
 
         /* move to the next blob... */

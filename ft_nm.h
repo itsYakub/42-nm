@@ -24,6 +24,8 @@ extern int g_opt_extern;
 extern int g_opt_undef;
 extern int g_opt_sort;
 
+extern int g_errno;
+
 /* ./ft_nm.c */
 
 extern char *ft_file(const char *);
@@ -34,11 +36,11 @@ extern int ft_getopt(int, char **);
 
 /* ./ft_nm-x32.c */
 
-extern char *ft_elf32(const char *, const char *);
+extern char *ft_elf32(const char *);
 
 /* ./ft_nm-x64.c */
 
-extern char *ft_elf64(const char *, const char *);
+extern char *ft_elf64(const char *);
 
 /* ./ft_nm-ar.c */
 
@@ -67,5 +69,7 @@ extern size_t ft_numlen(long long, int);
 extern char *ft_utoa_hex(unsigned long long);
 
 extern char *ft_strjoin_free(char *, const char *);
+
+extern int ft_perror(const char *);
 
 #endif /* _ft_nm_h_ */

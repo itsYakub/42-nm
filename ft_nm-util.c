@@ -142,3 +142,46 @@ extern char *ft_strjoin_free(char *dst, const char *src) {
     free(dst), dst = tmp;
     return (tmp);
 }
+
+extern int ft_perror(const char *path) {
+    if (!path) { return (0); }
+
+    switch (g_errno) {
+        case (0): {
+            ft_putstr_fd(g_prog, STDERR_FILENO);
+            ft_putstr_fd(": '", STDERR_FILENO);
+            ft_putstr_fd(path, STDERR_FILENO);
+            ft_putendl_fd("': success", STDERR_FILENO);
+        } break;
+        
+        case (1): {
+            ft_putstr_fd(g_prog, STDERR_FILENO);
+            ft_putstr_fd(": '", STDERR_FILENO);
+            ft_putstr_fd(path, STDERR_FILENO);
+            ft_putendl_fd("': No such file", STDERR_FILENO);
+        } break;
+        
+        case (2): {
+            ft_putstr_fd(g_prog, STDERR_FILENO);
+            ft_putstr_fd(": Warning: '", STDERR_FILENO);
+            ft_putstr_fd(path, STDERR_FILENO);
+            ft_putendl_fd("' is a directory", STDERR_FILENO);
+        } break;
+        
+        case (3): {
+            ft_putstr_fd(g_prog, STDERR_FILENO);
+            ft_putstr_fd(": ", STDERR_FILENO);
+            ft_putstr_fd(path, STDERR_FILENO);
+            ft_putendl_fd(": file format not recognized", STDERR_FILENO);
+        } break;
+        
+        case (4): {
+            ft_putstr_fd(g_prog, STDERR_FILENO);
+            ft_putstr_fd(": ", STDERR_FILENO);
+            ft_putstr_fd(path, STDERR_FILENO);
+            ft_putendl_fd(": no symbols", STDERR_FILENO);
+        } break;
+    }
+    g_errno = 0;
+    return (1);
+}

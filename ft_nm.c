@@ -1,3 +1,8 @@
+/* TODO:
+ * 1. [ ] perror should return output string
+ * 2. [ ] output string should be either printed directly (regular binary files) or appended to the output (archives)
+ * */
+
 #include "./ft_nm.h"
 
 /* SECTION: api
@@ -35,6 +40,9 @@ int main(int ac, char **av) {
             ft_putstr_fd(output, 1);
             free(output), output = 0;
         }
+        else if (g_errno != 0) {
+            ft_perror(name);
+        }
     }
 
     ft_lstclear(&g_paths, free), g_paths = 0;
@@ -45,10 +53,7 @@ extern char *ft_file(const char *path) {
     /* setup... */
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
-        ft_putstr_fd(g_prog, 1);
-        ft_putstr_fd(": '", 1);
-        ft_putstr_fd(path, 1);
-        ft_putendl_fd("': No such file", 1);
+        g_errno = 1;
         return (0);
     }
 
@@ -59,10 +64,7 @@ extern char *ft_file(const char *path) {
     }
     
     if (S_ISDIR(stat.st_mode)) {
-        ft_putstr_fd(g_prog, 1);
-        ft_putstr_fd(": Warning: '", 1);
-        ft_putstr_fd(path, 1);
-        ft_putendl_fd("' is a directory", 1);
+        g_errno = 2;
         return (0);
     }
 
@@ -79,8 +81,8 @@ extern char *ft_file(const char *path) {
     /* check if the file is ELF file... */
     if (ft_elf_getMagic(buffer)) {
         switch (ft_elf_getArch(buffer)) {
-            case (ELFCLASS32): { output = ft_elf32(buffer, path); } break;
-            case (ELFCLASS64): { output = ft_elf64(buffer, path); } break;
+            case (ELFCLASS32): { output = ft_elf32(buffer); } break;
+            case (ELFCLASS64): { output = ft_elf64(buffer); } break;
         }
     }
     else {
@@ -89,10 +91,7 @@ extern char *ft_file(const char *path) {
             output = ft_ar(buffer, stat.st_size);
         }
         else {
-            ft_putstr_fd(g_prog, 1);
-            ft_putstr_fd(": ", 1);
-            ft_putstr_fd(path, 1);
-            ft_putendl_fd(": file format not recognized", 1);
+            g_errno = 3;
         }
     }
     
@@ -137,3 +136,13 @@ int g_opt_undef = 0;
  * > 2 - descending (z - a)
  * */
 int g_opt_sort = 1;
+
+
+/* g_errno - my own errno
+ * > 0 - success
+ * > 1 - no_such_file
+ * > 2 - is_a_directory
+ * > 3 - file_format_no_recognized
+ * > 4 - no_symbols
+ * */
+int g_errno = 0;

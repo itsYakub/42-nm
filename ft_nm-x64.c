@@ -23,7 +23,7 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 /* SECTION: api
  * */
 
-extern char *ft_elf64(const char *buffer, const char *path) {
+extern char *ft_elf64(const char *buffer) {
     if (!buffer) { return (0); }
 
     /* output pointer... */
@@ -48,10 +48,7 @@ extern char *ft_elf64(const char *buffer, const char *path) {
     size_t sym_tb_s = 0;
     Elf64_Sym *sym_tb = ft_elf64_extractSymbol(ehdr, shdr_tb, buffer, &sym_tb_s);
     if (!sym_tb) {
-        ft_putstr_fd(g_prog, 1);
-        ft_putstr_fd(": ", 1);
-        ft_putstr_fd(path, 1);
-        ft_putendl_fd(": no symbols", 1);
+        g_errno = 4;
         goto ft_elf64_exit;
     }
 
@@ -446,7 +443,8 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *shdr_tb, Elf64_Sym sym) {
 
                     case (SHF_WRITE):
                     case (SHF_WRITE | SHF_ALLOC):
-                    case (SHF_WRITE | SHF_ALLOC | SHF_TLS): { c = 'D'; } break;
+                    case (SHF_WRITE | SHF_ALLOC | SHF_TLS):
+                    case (SHF_WRITE | SHF_ALLOC | SHF_GNU_RETAIN): { c = 'D'; } break;
 
                     case (SHF_EXECINSTR):
                     case (SHF_EXECINSTR | SHF_ALLOC):
