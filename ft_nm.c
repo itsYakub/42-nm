@@ -1,6 +1,7 @@
 /* TODO:
- * 1. [ ] perror should return output string
- * 2. [ ] output string should be either printed directly (regular binary files) or appended to the output (archives)
+ * 1. [X] perror should return output string
+ * 2. [X] output string should be either printed directly (regular binary files) or appended to the output (archives)
+ * 3. [ ] improve efficiency of execution (it's to damn slow)
  * */
 
 #include "./ft_nm.h"
@@ -37,12 +38,13 @@ int main(int ac, char **av) {
                 ft_putstr_fd(name, 1);
                 ft_putendl_fd(":", 1);
             }
-            ft_putstr_fd(output, 1);
-            free(output), output = 0;
         }
         else if (g_errno != 0) {
-            ft_perror(name);
+            output = ft_perror(name);
         }
+
+        ft_putstr_fd(output, 1);
+        free(output), output = 0;
     }
 
     ft_lstclear(&g_paths, free), g_paths = 0;

@@ -70,6 +70,6 @@ extern char *ft_utoa_hex(unsigned long long);
 
 extern char *ft_strjoin_free(char *, const char *);
 
-extern int ft_perror(const char *);
+extern char *ft_perror(const char *);
 
 #endif /* _ft_nm_h_ */

@@ -1,7 +1,3 @@
-/* TODO:
- * 1. [X] check why /lib/libc.a doesn't work
- * */
-
 #include "./ft_nm.h"
 
 extern char *ft_ar(const char *buffer, const size_t size) {
@@ -74,7 +70,10 @@ extern char *ft_ar(const char *buffer, const size_t size) {
             }
 
             if (!tmp0) {
-                ft_perror(ar_name);
+                /* ...and append the results to the output string, even if faulty */
+                tmp0 = ft_perror(ar_name);
+                output = ft_strjoin_free(output, tmp0);
+                free(tmp0), tmp0 = 0;
             }
             else {
                 /* ...and append the results to the output string */

@@ -143,45 +143,41 @@ extern char *ft_strjoin_free(char *dst, const char *src) {
     return (tmp);
 }
 
-extern int ft_perror(const char *path) {
+extern char *ft_perror(const char *path) {
     if (!path) { return (0); }
 
+    char *output = 0;
     switch (g_errno) {
         case (0): {
-            ft_putstr_fd(g_prog, STDERR_FILENO);
-            ft_putstr_fd(": '", STDERR_FILENO);
-            ft_putstr_fd(path, STDERR_FILENO);
-            ft_putendl_fd("': success", STDERR_FILENO);
+            output = ft_strjoin(g_prog, ": ");
+            output = ft_strjoin_free(output, path);
+            output = ft_strjoin_free(output, ": success\n");
         } break;
         
         case (1): {
-            ft_putstr_fd(g_prog, STDERR_FILENO);
-            ft_putstr_fd(": '", STDERR_FILENO);
-            ft_putstr_fd(path, STDERR_FILENO);
-            ft_putendl_fd("': No such file", STDERR_FILENO);
+            output = ft_strjoin(g_prog, ": ");
+            output = ft_strjoin_free(output, path);
+            output = ft_strjoin_free(output, ": No such file\n");
         } break;
         
         case (2): {
-            ft_putstr_fd(g_prog, STDERR_FILENO);
-            ft_putstr_fd(": Warning: '", STDERR_FILENO);
-            ft_putstr_fd(path, STDERR_FILENO);
-            ft_putendl_fd("' is a directory", STDERR_FILENO);
+            output = ft_strjoin(g_prog, ": '");
+            output = ft_strjoin_free(output, path);
+            output = ft_strjoin_free(output, "' is a directory\n");
         } break;
         
         case (3): {
-            ft_putstr_fd(g_prog, STDERR_FILENO);
-            ft_putstr_fd(": ", STDERR_FILENO);
-            ft_putstr_fd(path, STDERR_FILENO);
-            ft_putendl_fd(": file format not recognized", STDERR_FILENO);
+            output = ft_strjoin(g_prog, ": ");
+            output = ft_strjoin_free(output, path);
+            output = ft_strjoin_free(output, ": file format not recognized\n");
         } break;
         
         case (4): {
-            ft_putstr_fd(g_prog, STDERR_FILENO);
-            ft_putstr_fd(": ", STDERR_FILENO);
-            ft_putstr_fd(path, STDERR_FILENO);
-            ft_putendl_fd(": no symbols", STDERR_FILENO);
+            output = ft_strjoin(g_prog, ": ");
+            output = ft_strjoin_free(output, path);
+            output = ft_strjoin_free(output, ": no symbols\n");
         } break;
     }
     g_errno = 0;
-    return (1);
+    return (output);
 }
