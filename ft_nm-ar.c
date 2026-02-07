@@ -65,8 +65,8 @@ extern struct s_file *ft_ar(const char *path, const char *buffer, const size_t s
         if (ft_elf_getMagic(cursor)) {
             struct s_file *file = 0;
             switch (ft_elf_getArch(cursor)) {
-                case (ELFCLASS32): { file = ft_elf32(path, cursor); } break;
-                case (ELFCLASS64): { file = ft_elf64(path, cursor); } break;
+                case (ELFCLASS32): { file = ft_elf32(ar_name, cursor); } break;
+                case (ELFCLASS64): { file = ft_elf64(ar_name, cursor); } break;
             }
             
             ft_lstadd_back(&list, ft_lstnew(file));
@@ -80,14 +80,13 @@ extern struct s_file *ft_ar(const char *path, const char *buffer, const size_t s
     }
 
     /* final step: archive file... */
-    size_t lstsize = ft_lstsize(list);
     struct s_file *file = malloc(sizeof(struct s_file));
     ft_strlcpy(file->f_name, path, PATH_MAX);
-    file->f_size = lstsize;
-    file->f_data = malloc(lstsize * sizeof(struct s_file));
+    file->f_size = ft_lstsize(list);
+    file->f_data = malloc(file->f_size * sizeof(struct s_file));
     file->f_type = 2;
-    for (size_t i = 0; i < lstsize; i++) {
-        file->f_data = list->content;
+    for (size_t i = 0; i < file->f_size; i++) {
+        ((struct s_file *) file->f_data)[i] = *((struct s_file *) list->content);
 
         /* cleanup... */
         t_list *tmp = list;

@@ -68,9 +68,9 @@ int main(int ac, char **av) {
 
                     arr = ft_sort(arr, files[i].f_size);
                     
-                    ft_putstr_fd(path, 1);
+                    ft_putstr_fd(files[i].f_name, 1);
                     ft_putendl_fd(":", 1);
-                    ft_printFile(file[i]);
+                    ft_printFile(files[i]);
                     free(arr), arr = 0;
                 }
 
