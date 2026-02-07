@@ -3,31 +3,19 @@
 /* SECTION: static functions
  * */
 
-
 static void *ft_elf32_getStrtab(Elf32_Ehdr *, Elf32_Shdr *, const char *, const char *, const char *);
-
-static Elf32_Sym *ft_elf32_extractSymbol(Elf32_Ehdr *, Elf32_Shdr *, const char *, size_t *);
-
-static Elf32_Sym *ft_elf32_sort(Elf32_Shdr *, Elf32_Sym *, const size_t, const char *, const char *);
-
-static int ft_elf32_comparea(const char *, const char *);
-                                         
-static int ft_elf32_compared(const char *, const char *);
-
-static char *ft_elf32_printSymbols(Elf32_Shdr *, Elf32_Sym *, const size_t, const char *, const char *);
-
-static char *ft_elf32_printSymbol(Elf32_Sym, const char *, const char);
 
 static int ft_elf32_getLetterCode(Elf32_Shdr *, Elf32_Sym);
 
 /* SECTION: api
  * */
 
-extern char *ft_elf32(const char *buffer) {
+extern struct s_file *ft_elf32(const char *buffer) {
     if (!buffer) { return (0); }
 
     /* output pointer... */
-    char *output = 0;
+    size_t size = 0;
+    struct s_file *arr = 0;
 
     /* ehdr... */
     Elf32_Ehdr *ehdr = ft_elf_extract(buffer, sizeof(Elf32_Ehdr), 0);
@@ -38,36 +26,60 @@ extern char *ft_elf32(const char *buffer) {
     if (!shdr_tb) { goto ft_elf32_exit; }
 
     /* extract STRTAB's... */
-    const char *shstrtab = ft_elf_extract(buffer, shdr_tb[ehdr->e_shstrndx].sh_size, shdr_tb[ehdr->e_shstrndx].sh_offset);
+    char *shstrtab = ft_elf_extract(buffer, shdr_tb[ehdr->e_shstrndx].sh_size, shdr_tb[ehdr->e_shstrndx].sh_offset);
     if (!shstrtab) { goto ft_elf32_exit; }
 
-    const char *dynstr = ft_elf32_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".dynstr");
-    const char *strtab = ft_elf32_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
+    char *strtab = ft_elf32_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
 
     /* extract symbol table... */
-    size_t sym_tb_s = 0;
-    Elf32_Sym *sym_tb = ft_elf32_extractSymbol(ehdr, shdr_tb, buffer, &sym_tb_s);
+    Elf32_Sym *sym_tb = 0;
+    for (size_t i = 0; i < ehdr->e_shnum; i++) {
+        Elf32_Shdr shdr = shdr_tb[i];
+        if (shdr.sh_type != SHT_SYMTAB) {
+            continue;
+        }
+
+        sym_tb= ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
+        if (!sym_tb) {
+            goto ft_elf32_exit; 
+        }
+
+        size = shdr.sh_size / sizeof(*sym_tb);
+    }
     if (!sym_tb) {
         g_errno = 4;
         goto ft_elf32_exit;
     }
 
-    /* sort symbol table... */
-    sym_tb = ft_elf32_sort(shdr_tb, sym_tb, sym_tb_s, shstrtab, strtab);
+    arr = ft_calloc(size + 1, sizeof(struct s_file));
+    if (!arr) {
+        goto ft_elf32_exit; 
+    }
 
-    /* print symbol table...
-     * */
-    output = ft_elf32_printSymbols(shdr_tb, sym_tb, sym_tb_s, shstrtab, strtab);
-    if (!output) { goto ft_elf32_exit; }
+    for (size_t i = 0; i < size; i++) {
+        Elf32_Sym sym = sym_tb[i];
+        char  st_code = ft_elf32_getLetterCode(shdr_tb, sym);
+        char *st_name = ELF32_ST_TYPE(sym.st_info) == STT_SECTION ? 
+            shstrtab + shdr_tb[sym.st_shndx].sh_name :
+            strtab + sym.st_name;
+        
+        ft_strlcpy(arr[i].name, st_name, PATH_MAX);
+        arr[i].arch = ELFCLASS32;
+        arr[i].type = ELF32_ST_TYPE(sym.st_info);
+        arr[i].bind = ELF32_ST_BIND(sym.st_info);
+        arr[i].shndx = sym.st_shndx;
+        arr[i].addr = sym.st_value;
+        arr[i].code = st_code;
+        arr[i].valid = 1;
+    }
 
 ft_elf32_exit:
     if (shstrtab) { free((void *) shstrtab), shstrtab = 0; }
     if (strtab)   { free((void *) strtab), strtab = 0; }
-    if (dynstr)   { free((void *) dynstr), dynstr = 0; }
     if (shdr_tb)  { free(shdr_tb), shdr_tb = 0; }
     if (sym_tb)   { free(sym_tb), sym_tb = 0; }
     if (ehdr)     { free(ehdr), ehdr = 0; }
-    return (output);
+    return (arr);
 }
 
 /* SECTION: static functions
@@ -91,298 +103,6 @@ static void *ft_elf32_getStrtab(Elf32_Ehdr *ehdr, Elf32_Shdr *shdr_tb, const cha
     }
 
     return (0);
-}
-
-static Elf32_Sym *ft_elf32_extractSymbol(Elf32_Ehdr *ehdr, Elf32_Shdr *shdr_tb, const char *buffer, size_t *sizeptr) {
-    /* null-check... */
-    if (!ehdr)    { return (0); }
-    if (!shdr_tb) { return (0); }
-    if (!buffer)  { return (0); }
-    if (!sizeptr) { return (0); }
-   
-    Elf32_Sym *sym_tb = 0;
-    for (size_t i = 0; i < ehdr->e_shnum; i++) {
-        Elf32_Shdr shdr = shdr_tb[i];
-        if (shdr.sh_type != SHT_SYMTAB) {
-            continue;
-        }
-
-        Elf32_Sym *tmp = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
-        if (!tmp) {
-            return (0);
-        }
-
-        if (!sym_tb) {
-            sym_tb = ft_memdup(tmp, shdr.sh_size);
-            if (!sym_tb) {
-                free(tmp), tmp = 0;
-                return (0);
-            }
-            *sizeptr = shdr.sh_size / sizeof(Elf32_Sym);
-        }
-        else {
-            void *tmp1 = sym_tb;
-            sym_tb = ft_memjoin(sym_tb, tmp, shdr.sh_size, *sizeptr);
-            if (!sym_tb) {
-                free(tmp), tmp = 0;
-                free(sym_tb), sym_tb = 0;
-                return (0);
-            }
-            *sizeptr += shdr.sh_size / sizeof(Elf32_Sym);
-            free(tmp1), tmp1 = 0;
-        }
-
-        free(tmp), tmp = 0;
-    }
-
-    if (!*sizeptr) {
-        return (0);
-    }
-
-    return (sym_tb);
-}
-
-static Elf32_Sym *ft_elf32_sort(Elf32_Shdr *shdr_tb, Elf32_Sym *sym_tb, const size_t size, const char *shstrtab, const char *strtab) {
-    /* safety-check... */
-    if (!shdr_tb)  { return (0); }
-    if (!sym_tb)   { return (0); }
-    if (!shstrtab) { return (0); }
-    if (!strtab)   { return (0); }
-    if (!size)     { return (0); }
-    
-    int (*compare)(const char *, const char *);
-    switch (g_opt_sort) {
-        case (1): { compare = ft_elf32_comparea; } break;
-        case (2): { compare = ft_elf32_compared; } break;
-        default:  { return (sym_tb); }
-    }
-
-    for (size_t i = 0; i < size - 1; i++) {
-        for (size_t j = 0; j < size - 1 - i; j++) {
-            
-            Elf32_Sym sym0 = sym_tb[j];
-            const char *name0 = strtab + sym0.st_name;
-            if (!*name0) {
-                const uint8_t st_type = ELF32_ST_TYPE(sym0.st_info);
-                if (g_opt_debug && st_type == STT_SECTION) {
-                    name0 = shstrtab + shdr_tb[sym0.st_shndx].sh_name;
-                }
-            }
-
-            Elf32_Sym sym1 = sym_tb[j + 1];
-            const char *name1 = strtab + sym1.st_name;
-            if (!*name1) {
-                const uint8_t st_type = ELF32_ST_TYPE(sym1.st_info);
-                if (g_opt_debug && st_type == STT_SECTION) {
-                    name1 = shstrtab + shdr_tb[sym1.st_shndx].sh_name;
-                }
-            }
-            if (compare(name0, name1)) {
-                Elf32_Sym tmp = sym_tb[j];
-                sym_tb[j] = sym_tb[j + 1];
-                sym_tb[j + 1] = tmp;
-            }
-        }
-    }
-    return (sym_tb);
-}
-
-static int ft_elf32_comparea(const char *name0, const char *name1) {
-    const char *n0 = name0;
-    const char *n1 = name1;
-
-    while (*n0 || *n1) {
-        while (*n0 && !ft_isalnum(*n0)) { n0++; }
-        while (*n1 && !ft_isalnum(*n1)) { n1++; }
-        if (ft_tolower(*n0) != ft_tolower(*n1)) {
-            return (ft_tolower(*n0) > ft_tolower(*n1));
-        }
-
-        if (*n0) { n0++; }
-        if (*n1) { n1++; }
-    }
-
-    return (ft_strcmp(name0, name1) > 0);
-}
-
-static int ft_elf32_compared(const char *name0, const char *name1) {
-    const char *n0 = name0;
-    const char *n1 = name1;
-
-    while (*n0 || *n1) {
-        while (*n0 && !ft_isalnum(*n0)) { n0++; }
-        while (*n1 && !ft_isalnum(*n1)) { n1++; }
-        if (ft_tolower(*n0) != ft_tolower(*n1)) {
-            return (ft_tolower(*n0) < ft_tolower(*n1));
-        }
-
-        if (*n0) { n0++; }
-        if (*n1) { n1++; }
-    }
-
-    return (ft_strcmp(name0, name1) < 0);
-}
-
-static char *ft_elf32_printSymbols(Elf32_Shdr *shdr_tb, Elf32_Sym *sym_tb, const size_t size, const char *shstrtab, const char *strtab) {
-    /* null-check... */
-    if (!shdr_tb) { return (0); }
-    if (!sym_tb)  { return (0); }
-    if (!strtab)  { return (0); }
-
-    /* output buffer... */
-    size_t out_l = 0,       /* out_l - output length */
-           out_c = 4096;    /* out_c - output capacity */
-
-    char *output = ft_calloc(out_c, sizeof(char));
-    if (!output) {
-        return (0);
-    }
-
-    for (size_t i = 0; i < size; i++) {
-        Elf32_Sym sym = sym_tb[i];
-        const char *st_name = strtab + sym.st_name;
-        char        st_code = ft_elf32_getLetterCode(shdr_tb, sym);
-
-        /* check if the symbol is null-symbol... */
-        if (!sym.st_name  &&
-            !sym.st_info  &&
-            !sym.st_other &&
-            !sym.st_shndx &&
-            !sym.st_value &&
-            !sym.st_size
-        ) {
-            continue;
-        }
-       
-        /* store the symbol output into tmp buffer... */
-        char *tmp = 0;
-
-        /* process '-u' / '--undefined-only'... */
-        if (g_opt_undef) {
-            if (sym.st_shndx == SHN_UNDEF) {
-                tmp = ft_elf32_printSymbol(sym, st_name, st_code);
-            }
-        }
-        
-        /* process '-g' / '--extern-only'... */
-        else if (g_opt_extern) {
-            const uint8_t st_bind = ELF32_ST_BIND(sym.st_info);
-            if (st_bind == STB_GLOBAL ||
-                st_bind == STB_WEAK
-            ) {
-                tmp = ft_elf32_printSymbol(sym, st_name, st_code);
-            }
-        }
-        
-        /* process '-a' / '--debug-syms'... */
-        else if (g_opt_debug) {
-            if (!*st_name) {
-                const uint8_t st_type = ELF32_ST_TYPE(sym.st_info);
-                if (st_type == STT_SECTION) {
-                    st_name = shstrtab + shdr_tb[sym.st_shndx].sh_name;
-                    /* if symbol is debug symbol... */
-                    if (!ft_strncmp(st_name, ".debug_", 7)) {
-                        st_code = 'N';
-                    }
-                }
-            }
-            tmp = ft_elf32_printSymbol(sym, st_name, st_code);
-        }
-
-        /* process default... */
-        else {
-            const uint16_t st_shndx = sym.st_shndx;
-            if (st_shndx != SHN_LOPROC    &&
-                st_shndx != SHN_HIPROC    &&
-                st_shndx != SHN_BEFORE    &&
-                st_shndx != SHN_AFTER     &&
-                st_shndx != SHN_LOOS      &&
-                st_shndx != SHN_HIOS      &&
-                st_shndx != SHN_ABS       &&
-                st_shndx != SHN_COMMON    &&
-                st_shndx != SHN_XINDEX    &&
-                st_shndx != SHN_HIRESERVE
-            ) {
-                const uint8_t st_type = ELF32_ST_TYPE(sym.st_info);
-                if (st_type != STT_SECTION) {
-                    tmp = ft_elf32_printSymbol(sym, st_name, st_code);
-                }
-            }
-        }
-
-        /* now, append the tmp string to the output string (only if tmp is valid)... */
-        if (tmp) {
-            size_t tmp_l = ft_strlen(tmp);
-
-            /* check for buffer overflow... */
-            if (out_l + tmp_l >= out_c) {
-                out_c += 4096;
-                char *tmp0 = ft_calloc(out_c, sizeof(char));
-                if (!tmp0) {
-                    if (output) { free(output); }
-                    return (0);
-                }
-
-                tmp0 = ft_memcpy(tmp0, output, out_l);
-                if (!tmp0) {
-                    if (output) { free(output); }
-                    return (0);
-                }
-
-                free(output), output = tmp0;
-            }
-
-            /* perform copy... */
-            out_l += tmp_l;
-            ft_strlcat(output, tmp, out_c);
-            
-            /* release tmp for the next iteration... */
-            free(tmp), tmp = 0;
-        }
-    }
-
-    return (output);
-}
-
-/* This is the most inefficient code I've ever written probably. 
- * But at the same time it's still more performant then most code from 42 students lolz
- * */
-static char *ft_elf32_printSymbol(Elf32_Sym sym, const char *st_name, const char st_code) {
-    /* output pointer... */
-    char *output = ft_strdup("");
-
-    /* print address... */
-    if (sym.st_shndx == SHN_UNDEF) {
-        output = ft_strjoin_free(output, "         ");
-    }
-    else {
-        size_t numlen = ft_numlen(sym.st_value, 16);
-        for (size_t i = 0; i < 8 - numlen; i++) {
-            output = ft_strjoin_free(output, "0");
-        }
-        if (sym.st_value > 0) {
-            char *tmp0 = ft_utoa_hex(sym.st_value);
-            if (!tmp0) { return (0); }
-
-            output = ft_strjoin_free(output, tmp0);
-            free(tmp0), tmp0 = 0;
-        }
-        
-        output = ft_strjoin_free(output, " ");
-    }
-
-    /* print code... */
-    char tmp1[] = { st_code, 0 };
-    output = ft_strjoin_free(output, tmp1);
-    output = ft_strjoin_free(output, " ");
-
-    /* print name... */
-    if (st_name && st_name[0]) {
-        output = ft_strjoin_free(output, st_name);
-    }
-    output = ft_strjoin_free(output, "\n");
-
-    return (output);
 }
 
 static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
@@ -434,11 +154,6 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
                 c = 'B';
             } break;
 
-            case (SHT_REL):
-            case (SHT_RELA): {
-                c = 'R';
-            } break;
-
             default: {
                 if (!(shdr.sh_flags & SHF_ALLOC)) { c = 'N'; }
                 switch (shdr.sh_flags) {
@@ -455,13 +170,10 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
                     case (SHF_EXECINSTR | SHF_ALLOC):
                     case (SHF_EXECINSTR | SHF_ALLOC | SHF_GROUP):
                     case (SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE): { c = 'T'; } break;
-
-                    default: { c = 'R'; } break;
                 }
             } break;
         }
     }
-
 
     /* check if symbol is global / local... */
     return (st_bind == STB_LOCAL ? ft_tolower(c) : c);

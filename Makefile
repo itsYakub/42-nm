@@ -12,11 +12,13 @@ LDFLAGS	= -L$(LIBFT)
 # ========
 
 OBJS	= $(SRCS:.c=.o)
-SRCS	= ./ft_nm.c \
-		  ./ft_nm-x32.c \
-		  ./ft_nm-x64.c \
-		  ./ft_nm-ar.c \
-		  ./ft_nm-util.c \
+SRCS	= ./ft_nm.c 		\
+		  ./ft_nm-file.c	\
+		  ./ft_nm-print.c	\
+		  ./ft_nm-sort.c	\
+		  ./ft_nm-x64.c 	\
+		  ./ft_nm-x32.c 	\
+		  ./ft_nm-util.c 	\
 		  ./ft_nm-getopt.c
 
 # ========

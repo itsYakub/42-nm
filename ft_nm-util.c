@@ -95,39 +95,28 @@ extern int ft_islower(int c) {
     return (c >= 'a' && c <= 'z');
 }
 
-extern size_t ft_numlen(long long n, int base) {
-	int	result = 0;
-	while (n != 0) {
-		result++;
-		n /= base;
-	}
-
-	return (result);
-}
-
-extern char *ft_utoa_hex(unsigned long long n) {
+extern char *ft_utoa(uint64_t n, uint8_t radix, char buffer[16]) {
     const char base[] = "0123456789abcdef";
 
-    /* length of the number in base16... */
-    size_t n_l = ft_numlen(n, 16);
-
-    /* output string... */
-    char *output = ft_calloc(n_l + 1, sizeof(char));
-    if (!output) { return (0); }
+    /* length of the number... */
+    size_t n_l = 0;
+    for (uint64_t tmp = n; tmp != 0; tmp /= radix) {
+        n_l++;
+    }
 
     /* append characters to array... */
     for (size_t i = 0; n; i++, n /= 16) {
-        output[i] = base[n % 16];
+        buffer[i] = base[n % radix];
     }
 
     /* reverse the array... */
     for (size_t i = 0; i < n_l / 2; i++) {
-        char tmp = output[i];
-        output[i] = output[n_l - 1 - i];
-        output[n_l - 1 - i] = tmp;
+        char tmp = buffer[i];
+        buffer[i] = buffer[n_l - 1 - i];
+        buffer[n_l - 1 - i] = tmp;
     }
 
-    return (output);
+    return (buffer);
 }
 
 /* NOTE:

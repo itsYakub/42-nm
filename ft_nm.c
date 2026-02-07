@@ -35,65 +35,28 @@ int main(int ac, char **av) {
     for (t_list *item = list; item; item = item->next) {
         const char *path = item->content;
 
-        /* ... */
-        (void) path;
+        struct s_file *arr = ft_file(path);
+        if (!arr) {
+            ft_lstclear(&list, free), list = 0;
+            return (1);
+        }
+
+        size_t size = 0;
+        while (arr[size].valid) { size++; }
+
+        arr = ft_sort(arr, size);
+        if (!arr) {
+            ft_lstclear(&list, free), list = 0;
+            return (1);
+        }
+
+        ft_print(arr, size);
+
+        free(arr), arr = 0;
     }
     
     ft_lstclear(&list, free), list = 0;
     return (0);
-}
-
-extern char *ft_file(const char *path) {
-    /* setup... */
-    int fd = open(path, O_RDONLY);
-    if (fd == -1) {
-        g_errno = 1;
-        return (0);
-    }
-
-    struct stat stat = { 0 };
-    if (fstat(fd, &stat) == -1) {
-        perror(g_prog);
-        return (0);
-    }
-    
-    if (S_ISDIR(stat.st_mode)) {
-        g_errno = 2;
-        return (0);
-    }
-
-    /* read file to a buffer... */
-    char *buffer = mmap(0, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (!buffer) {
-        close(fd), fd = 0;
-        return (0);
-    }
-    
-    /* execution... */
-    char *output = 0;
-
-    /* check if the file is ELF file... */
-    if (ft_elf_getMagic(buffer)) {
-        switch (ft_elf_getArch(buffer)) {
-            case (ELFCLASS32): { output = ft_elf32(buffer); } break;
-            case (ELFCLASS64): { output = ft_elf64(buffer); } break;
-        }
-    }
-    else {
-        /* check if file is "ar" file... */
-        if (ft_ar_getMagic(buffer)) {
-            output = ft_ar(buffer, stat.st_size);
-        }
-        else {
-            g_errno = 3;
-        }
-    }
-    
-    /* cleanup... */
-    munmap(buffer, stat.st_size), buffer = 0;
-    close(fd), fd = 0;
-
-    return (output);
 }
 
 

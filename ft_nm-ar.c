@@ -65,8 +65,8 @@ extern char *ft_ar(const char *buffer, const size_t size) {
             /* repeat the steps of the regular ELF file parsing... */
             char *tmp0 = 0;
             switch (ft_elf_getArch(cursor)) {
-                case (ELFCLASS32): { tmp0 = ft_elf32(cursor); } break;
-                case (ELFCLASS64): { tmp0 = ft_elf64(cursor); } break;
+                case (ELFCLASS32): { ft_elf32(cursor); } break;
+                case (ELFCLASS64): { ft_elf64(cursor); } break;
             }
 
             if (!tmp0) {
