@@ -13,26 +13,26 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *, Elf32_Sym);
 extern struct s_file *ft_elf32(const char *path, const char *buffer) {
     if (!buffer) { return (0); }
     
-    struct s_file *file = malloc(sizeof(struct s_file));
-    if (!file) {
-        return (0);
-    }
 
     /* ehdr... */
     Elf32_Ehdr *ehdr = ft_elf_extract(buffer, sizeof(Elf32_Ehdr), 0);
-    if (!ehdr) { goto ft_elf32_exit; }
+    if (!ehdr) {
+        return (0);
+    }
 
     /* shdr table... */
     Elf32_Shdr *shdr_tb = ft_elf_extract(buffer, ehdr->e_shnum * ehdr->e_shentsize, ehdr->e_shoff);
-    if (!shdr_tb) { goto ft_elf32_exit; }
+    if (!shdr_tb) {
+        free(ehdr);
+        return (0);
+    }
 
     /* extract STRTAB's... */
     char *shstrtab = ft_elf_extract(buffer, shdr_tb[ehdr->e_shstrndx].sh_size, shdr_tb[ehdr->e_shstrndx].sh_offset);
-    if (!shstrtab) { goto ft_elf32_exit; }
-
-    char *strtab = ft_elf32_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
+    char *strtab   = ft_elf32_getStrtab(ehdr, shdr_tb, buffer, shstrtab, ".strtab");
 
     /* extract symbol table... */
+    size_t sym_s = 0;
     Elf32_Sym *sym_tb = 0;
     for (size_t i = 0; i < ehdr->e_shnum; i++) {
         Elf32_Shdr shdr = shdr_tb[i];
@@ -40,24 +40,24 @@ extern struct s_file *ft_elf32(const char *path, const char *buffer) {
             continue;
         }
 
-        sym_tb= ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
-        if (!sym_tb) {
-            goto ft_elf32_exit; 
-        }
-
-        file->f_size = (shdr.sh_size / sizeof(*sym_tb)) - 1;
-    }
-    if (!sym_tb) {
-        g_errno = 4;
-        goto ft_elf32_exit;
+        sym_tb = ft_elf_extract(buffer, shdr.sh_size, shdr.sh_offset);
+        sym_s  = (shdr.sh_size / sizeof(*sym_tb)) - 1;
     }
 
-    ft_strlcpy(file->f_name, path, PATH_MAX);
+    struct s_file *file = ft_calloc(1, sizeof(struct s_file));
+    if (!file) {
+        free(ehdr);
+        free(shdr_tb);
+        free(sym_tb);
+        return (0);
+    }
+    
     file->f_type = 1;
-    file->f_data = ft_calloc(file->f_size, sizeof(struct s_symbol));
+    file->f_data = ft_calloc(sym_s, sizeof(struct s_symbol));
+    file->f_size = sym_s;
+    ft_strlcpy(file->f_name, path, PATH_MAX);
     for (size_t i = 1, j = 0; j < file->f_size; i++, j++) {
         Elf32_Sym sym = sym_tb[i];
-        char  st_code = ft_elf32_getLetterCode(shdr_tb, sym);
         char *st_name = strtab + sym.st_name;
         if (!*st_name) {
             if (g_opt_debug) {
@@ -66,23 +66,24 @@ extern struct s_file *ft_elf32(const char *path, const char *buffer) {
                 }
             }
         } 
-       
-        struct s_symbol *data = file->f_data;
-        ft_strlcpy(data[j].s_name, st_name, PATH_MAX);
-        data[j].s_arch = ELFCLASS32;
-        data[j].s_type = ELF32_ST_TYPE(sym.st_info);
-        data[j].s_bind = ELF32_ST_BIND(sym.st_info);
-        data[j].s_shndx = sym.st_shndx;
-        data[j].s_addr = sym.st_value;
-        data[j].s_code = st_code;
+      
+        struct s_symbol *data = &((struct s_symbol *) file->f_data)[j];
+        *data = (struct s_symbol) {
+            .s_arch = ELFCLASS32,
+            .s_type = ELF32_ST_TYPE(sym.st_info),
+            .s_bind = ELF32_ST_BIND(sym.st_info),
+            .s_shndx = sym.st_shndx,
+            .s_addr = sym.st_value,
+            .s_code = ft_elf32_getLetterCode(shdr_tb, sym)
+        };
+        ft_strlcpy(data->s_name, st_name, PATH_MAX);
     }
 
-ft_elf32_exit:
-    if (shstrtab) { free((void *) shstrtab), shstrtab = 0; }
-    if (strtab)   { free((void *) strtab), strtab = 0; }
-    if (shdr_tb)  { free(shdr_tb), shdr_tb = 0; }
-    if (sym_tb)   { free(sym_tb), sym_tb = 0; }
-    if (ehdr)     { free(ehdr), ehdr = 0; }
+    free(shstrtab);
+    free(strtab);
+    free(shdr_tb);
+    free(sym_tb);
+    free(ehdr);
     return (file);
 }
 

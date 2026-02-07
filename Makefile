@@ -57,13 +57,12 @@ clean :
 	rm -f $(OBJS)
 
 
-TEST_FILES	=
 TEST_FLAGS	=
 
 .PHONY : test
 
 test : all
-	@-diff <(/bin/nm $(TEST_FLAGS) $(TEST_FILES)) <($(TARGET) $(TEST_FLAGS) $(TEST_FILES))
+	@-diff <(/bin/nm $(TEST_FLAGS)) <($(TARGET) $(TEST_FLAGS))
 
 
 .PHONY : tests

@@ -1,7 +1,3 @@
-/* TODO:
- * 1. [ ] Fix problem with flags
- * */
-
 #include "./ft_nm.h"
 
 /* SECTION: api
@@ -37,25 +33,27 @@ int main(int ac, char **av) {
         if (!file) {
             continue;
         }
+        
+        size_t lstsize = ft_lstsize(list);
+        if (lstsize > 1) {
+            if (list != item ||
+                file->f_type == 2
+            ) {
+                ft_putchar_fd(10, 1);
+            }
+
+            ft_putstr_fd(path, 1);
+            ft_putendl_fd(":", 1);
+        }
 
         switch (file->f_type) {
             /* case: regular file */
             case (1): {
                 struct s_symbol *arr = (struct s_symbol *) file->f_data;
-                
                 arr = ft_sort(arr, file->f_size);
-                size_t lstsize = ft_lstsize(list);
-                if (lstsize > 1) {
-                    if (list != item) {
-                        ft_putchar_fd(10, 1);
-                    }
-
-                    ft_putstr_fd(path, 1);
-                    ft_putendl_fd(":", 1);
-                }
-
+                
                 ft_printFile(*file);
-                free(arr), arr = 0;
+                free(arr);
             } break;
 
             /* case: archive file */
@@ -65,21 +63,28 @@ int main(int ac, char **av) {
                 /* for every file in archive... */
                 for (size_t i = 0; i < file->f_size; i++) {
                     struct s_symbol *arr = (struct s_symbol *) files[i].f_data;
-
-                    arr = ft_sort(arr, files[i].f_size);
-                    
-                    ft_putendl_fd("", 1);
-                    ft_putstr_fd(files[i].f_name, 1);
-                    ft_putendl_fd(":", 1);
-                    ft_printFile(files[i]);
-                    free(arr), arr = 0;
+                    if (!arr) {
+                        if (*files[i].f_name) {
+                            g_errno = 4;
+                            ft_perror(files[i].f_name);
+                        }
+                    }
+                    else {
+                        arr = ft_sort(arr, files[i].f_size);
+                        
+                        ft_putendl_fd("", 1);
+                        ft_putstr_fd(files[i].f_name, 1);
+                        ft_putendl_fd(":", 1);
+                        ft_printFile(files[i]);
+                    }
+                    free(arr);
                 }
 
-                free(files), files = 0;
+                free(files);
             } break;
         }
 
-        free(file), file = 0;
+        free(file);
     }
     
     ft_lstclear(&list, free), list = 0;

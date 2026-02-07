@@ -80,19 +80,13 @@ extern struct s_file *ft_ar(const char *path, const char *buffer, const size_t s
     }
 
     /* final step: archive file... */
-    struct s_file *file = malloc(sizeof(struct s_file));
-    ft_strlcpy(file->f_name, path, PATH_MAX);
-    file->f_size = ft_lstsize(list);
-    file->f_data = malloc(file->f_size * sizeof(struct s_file));
+    struct s_file *file = ft_calloc(1, sizeof(struct s_file));
+    file->f_data = malloc(ft_lstsize(list) * sizeof(struct s_file));
     file->f_type = 2;
-    for (size_t i = 0; i < file->f_size; i++) {
-        ((struct s_file *) file->f_data)[i] = *((struct s_file *) list->content);
-
-        /* cleanup... */
-        t_list *tmp = list;
-        list = list->next;
-        free(tmp);
+    ft_strlcpy(file->f_name, path, PATH_MAX);
+    for (t_list *item = list; item; item = item->next) {
+        ((struct s_file *) file->f_data)[file->f_size++] = *((struct s_file *) item->content);
     }
-
+    ft_lstclear(&list, free);
     return (file);
 }
