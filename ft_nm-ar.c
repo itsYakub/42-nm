@@ -1,16 +1,20 @@
 #include "./ft_nm.h"
 
-extern char *ft_ar(const char *buffer, const size_t size) {
+struct s_archive {
+    char name[PATH_MAX];
+    struct s_symbol *arr;
+};
+
+extern int ft_ar(const char *buffer, const size_t size) {
     if (!buffer) { return (0); }
     if (!size)   { return (0); }
-
-    /* output string... */
-    char *output = ft_strdup("");
 
     /* helpers... */
     char *ar_blob = 0;  /* ar_blob - blob of symbol names that exceed the size of standard 'ar_name'... */
 
     /* execution... */
+    t_list *list = 0;
+
     char *cursor = (char *) buffer + SARMAG;
     while (cursor < buffer + size) {
         /* get the symbol header... */
@@ -61,29 +65,34 @@ extern char *ft_ar(const char *buffer, const size_t size) {
 
         /* get the blob itself... */
         cursor += sizeof(struct ar_hdr);
+    
+        /* execution... */
         if (ft_elf_getMagic(cursor)) {
-            /* repeat the steps of the regular ELF file parsing... */
-            char *tmp0 = 0;
+            /* allocate symbols... */
+            struct s_symbol *tmp = 0;
             switch (ft_elf_getArch(cursor)) {
-                case (ELFCLASS32): { ft_elf32(cursor); } break;
-                case (ELFCLASS64): { ft_elf64(cursor); } break;
+                case (ELFCLASS32): { tmp = ft_elf32(cursor); } break;
+                case (ELFCLASS64): { tmp = ft_elf64(cursor); } break;
+            }
+            
+            size_t size = 0;
+            while (tmp[size].valid) { size++; }
+
+            tmp = ft_sort(tmp, size);
+
+            /* allocate archive... */
+            struct s_archive *ar = malloc(sizeof(struct s_archive));
+            if (!ar) {
+                free(tmp), tmp = 0;
+                ft_lstclear(&list, free), list = 0;
+                return (0);
             }
 
-            if (!tmp0) {
-                /* ...and append the results to the output string, even if faulty */
-                tmp0 = ft_perror(ar_name);
-                output = ft_strjoin_free(output, tmp0);
-                free(tmp0), tmp0 = 0;
-            }
-            else {
-                /* ...and append the results to the output string */
-                output = ft_strjoin_free(output, "\n");
-                output = ft_strjoin_free(output, ar_name);
-                output = ft_strjoin_free(output, ":\n");
-                output = ft_strjoin_free(output, tmp0);
-                free(tmp0), tmp0 = 0;
-            }
+            ft_strlcpy(ar->name, ar_name, PATH_MAX);
+            ar->arr = tmp;
+            ft_lstadd_back(&list, ft_lstnew(ar));
         }
+        
 
         /* move to the next blob... */
         cursor += ar_size;
@@ -92,5 +101,33 @@ extern char *ft_ar(const char *buffer, const size_t size) {
         free(ar_name), ar_name = 0;
     }
 
-    return (output);
+    /* print every file with it's content... */
+    for (t_list *item = list; item; item = item->next) {
+        struct s_archive *ar = (struct s_archive *) item->content;
+        const char *path = ar->name;
+        
+        struct s_symbol *arr = ar->arr;
+        if (!arr) {
+            g_errno = 4;
+            ft_perror(path);
+            continue;
+        }
+
+        size_t lstsize = ft_lstsize(list);
+        if (lstsize > 1) {
+            ft_putchar_fd(10, 1);
+            ft_putstr_fd(path, 1);
+            ft_putendl_fd(":", 1);
+        }
+            
+        size_t size = 0;
+        while (arr[size].valid) { size++; }
+
+        ft_print(arr, size);
+
+        free(arr), arr = 0;
+    }
+
+    ft_lstclear(&list, free), list = 0;
+    return (1);
 }

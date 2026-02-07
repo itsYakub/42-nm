@@ -1,9 +1,9 @@
 #include "./ft_nm.h"
 
-static int ft_part(struct s_file *, const size_t, const size_t, int (*)(struct s_file, struct s_file));
+static int ft_part(struct s_symbol *, const size_t, const size_t, int (*)(struct s_symbol, struct s_symbol));
 
 
-extern struct s_file *ft_qsort(struct s_file *arr, const size_t low, const size_t high, int (*compare)(struct s_file, struct s_file)) {
+extern struct s_symbol *ft_qsort(struct s_symbol *arr, const size_t low, const size_t high, int (*compare)(struct s_symbol, struct s_symbol)) {
     if (!arr)       { return (0); }
     if (!compare)   { return (0); }
     
@@ -18,19 +18,19 @@ extern struct s_file *ft_qsort(struct s_file *arr, const size_t low, const size_
 }
 
 
-static int ft_part(struct s_file *arr, const size_t low, const size_t high, int (*compare)(struct s_file, struct s_file)) {
-    struct s_file pivot = arr[high];
+static int ft_part(struct s_symbol *arr, const size_t low, const size_t high, int (*compare)(struct s_symbol, struct s_symbol)) {
+    struct s_symbol pivot = arr[high];
 
     size_t i = low;
     for (size_t j = low; j < high; j++) {
         if (!compare(arr[j], pivot)) {
-            struct s_file tmp0 = arr[i];
+            struct s_symbol tmp0 = arr[i];
             arr[i] = arr[j];
             arr[j] = tmp0;
             i++;
         }
     }
-    struct s_file tmp0 = arr[i];
+    struct s_symbol tmp0 = arr[i];
     arr[i] = arr[high];
     arr[high] = tmp0;
     return (i);

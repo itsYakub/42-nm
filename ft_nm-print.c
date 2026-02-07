@@ -1,14 +1,14 @@
 #include "ft_nm.h"
 
-static int ft_printExact(struct s_file);
+static int ft_printExact(struct s_symbol);
 
-extern int ft_print(struct s_file *arr, const size_t size) {
+extern int ft_print(struct s_symbol *arr, const size_t size) {
     /* null-check... */
     if (!arr)  { return (0); }
     if (!size) { return (0); }
 
     for (size_t i = 0; i < size; i++) {
-        struct s_file file = arr[i];
+        struct s_symbol file = arr[i];
 
         /* process '-u' / '--undefined-only'... */
         if (g_opt_undef) {
@@ -62,7 +62,7 @@ extern int ft_print(struct s_file *arr, const size_t size) {
     return (1);
 }
 
-static int ft_printExact(struct s_file file) {
+static int ft_printExact(struct s_symbol file) {
     size_t addrlen = 0;
     switch (file.arch) {
         case (ELFCLASS32): { addrlen = 8; } break;

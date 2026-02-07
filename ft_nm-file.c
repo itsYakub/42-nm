@@ -1,25 +1,26 @@
 #include "./ft_nm.h"
 
-static int ft_comparea(struct s_file, struct s_file);
+static int ft_comparea(struct s_symbol, struct s_symbol);
 
-static int ft_compared(struct s_file, struct s_file);
+static int ft_compared(struct s_symbol, struct s_symbol);
 
-extern struct s_file *ft_file(const char *path) {
+extern struct s_symbol *ft_file(const char *path) {
     /* setup... */
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
         g_errno = 1;
+        ft_perror(path);
         return (0);
     }
 
     struct stat stat = { 0 };
     if (fstat(fd, &stat) == -1) {
-        perror(g_prog);
         return (0);
     }
     
     if (S_ISDIR(stat.st_mode)) {
         g_errno = 2;
+        ft_perror(path);
         return (0);
     }
 
@@ -31,7 +32,7 @@ extern struct s_file *ft_file(const char *path) {
     }
     
     /* execution... */
-    struct s_file *arr = 0;
+    struct s_symbol *arr = 0;
 
     /* check if the file is ELF file... */
     if (ft_elf_getMagic(buffer)) {
@@ -42,14 +43,19 @@ extern struct s_file *ft_file(const char *path) {
     }
     else {
         /* check if file is "ar" file... */
-        /*
         if (ft_ar_getMagic(buffer)) {
             ft_ar(buffer, stat.st_size);
+            /* NOTE:
+             *  By that logic we're returning NULL from the function
+             *  We must return other valid value or return 'arr' using parameters.
+             *  Then return statement would serve as a status.
+             * */
         }
         else {
             g_errno = 3;
+            ft_perror(path);
+            return (0);
         }
-        */
     }
     
     /* cleanup... */
@@ -59,12 +65,12 @@ extern struct s_file *ft_file(const char *path) {
     return (arr);
 }
 
-extern struct s_file *ft_sort(struct s_file *arr, const size_t size) {
+extern struct s_symbol *ft_sort(struct s_symbol *arr, const size_t size) {
     /* safety-check... */
     if (!arr)  { return (0); }
     if (!size) { return (0); }
     
-    int (*compare)(struct s_file, struct s_file);
+    int (*compare)(struct s_symbol, struct s_symbol);
     switch (g_opt_sort) {
         case (1): { compare = ft_comparea; } break;
         case (2): { compare = ft_compared; } break;
@@ -74,7 +80,7 @@ extern struct s_file *ft_sort(struct s_file *arr, const size_t size) {
     return (ft_qsort(arr, 0, size - 1, compare));
 }
 
-static int ft_comparea(struct s_file f0, struct s_file f1) {
+static int ft_comparea(struct s_symbol f0, struct s_symbol f1) {
     const char *n0, *name0 = n0 = f0.name;
     const char *n1, *name1 = n1 = f1.name;
 
@@ -92,7 +98,7 @@ static int ft_comparea(struct s_file f0, struct s_file f1) {
     return (ft_strcmp(name0, name1) > 0);
 }
 
-static int ft_compared(struct s_file f0, struct s_file f1) {
+static int ft_compared(struct s_symbol f0, struct s_symbol f1) {
     const char *n0, *name0 = n0 = f0.name;
     const char *n1, *name1 = n1 = f1.name;
 

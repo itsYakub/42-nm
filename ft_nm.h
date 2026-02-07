@@ -27,7 +27,7 @@ extern int g_opt_sort;
 
 extern int g_errno;
 
-struct s_file {
+struct s_symbol {
     uint64_t arch;
 
     uint64_t type;
@@ -44,17 +44,17 @@ struct s_file {
 
 /* ./ft_nm-file.c */
 
-extern struct s_file *ft_file(const char *);
+extern struct s_symbol *ft_file(const char *);
 
-extern struct s_file *ft_sort(struct s_file *, const size_t);
+extern struct s_symbol *ft_sort(struct s_symbol *, const size_t);
 
 /* ./ft_nm-print.c */
 
-extern int ft_print(struct s_file *, const size_t);
+extern int ft_print(struct s_symbol *, const size_t);
 
 /* ./ft_nm-sort.c */
 
-extern struct s_file *ft_qsort(struct s_file *, const size_t, const size_t, int (*)(struct s_file, struct s_file));
+extern struct s_symbol *ft_qsort(struct s_symbol *, const size_t, const size_t, int (*)(struct s_symbol, struct s_symbol));
 
 /* ./ft_nm-getopt.c */
 
@@ -62,15 +62,15 @@ extern int ft_getopt(int, char **);
 
 /* ./ft_nm-x32.c */
 
-extern struct s_file *ft_elf32(const char *);
+extern struct s_symbol *ft_elf32(const char *);
 
 /* ./ft_nm-x64.c */
 
-extern struct s_file *ft_elf64(const char *);
+extern struct s_symbol *ft_elf64(const char *);
 
 /* ./ft_nm-ar.c */
 
-/* extern char *ft_ar(const char *, const size_t); */
+extern int ft_ar(const char *, const size_t);
 
 /* ./ft_nm-util.c */
 
@@ -94,6 +94,6 @@ extern char *ft_utoa(uint64_t, uint8_t, char [16]);
 
 extern char *ft_strjoin_free(char *, const char *);
 
-extern char *ft_perror(const char *);
+extern int ft_perror(const char *);
 
 #endif /* _ft_nm_h_ */

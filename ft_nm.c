@@ -35,21 +35,15 @@ int main(int ac, char **av) {
     for (t_list *item = list; item; item = item->next) {
         const char *path = item->content;
 
-        struct s_file *arr = ft_file(path);
+        struct s_symbol *arr = ft_file(path);
         if (!arr) {
-            ft_lstclear(&list, free), list = 0;
-            return (1);
+            continue; 
         }
 
         size_t size = 0;
         while (arr[size].valid) { size++; }
 
         arr = ft_sort(arr, size);
-        if (!arr) {
-            ft_lstclear(&list, free), list = 0;
-            return (1);
-        }
-
         size_t lstsize = ft_lstsize(list);
         if (lstsize > 1) {
             if (list != item) {

@@ -10,12 +10,12 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 /* SECTION: api
  * */
 
-extern struct s_file *ft_elf64(const char *buffer) {
+extern struct s_symbol *ft_elf64(const char *buffer) {
     if (!buffer) { return (0); }
 
     /* output pointer... */
     size_t size = 0;
-    struct s_file *arr = 0;
+    struct s_symbol *arr = 0;
 
     /* ehdr... */
     Elf64_Ehdr *ehdr = ft_elf_extract(buffer, sizeof(Elf64_Ehdr), 0);
@@ -51,7 +51,7 @@ extern struct s_file *ft_elf64(const char *buffer) {
         goto ft_elf64_exit;
     }
 
-    arr = ft_calloc(size + 1, sizeof(struct s_file));
+    arr = ft_calloc(size + 1, sizeof(struct s_symbol));
     if (!arr) {
         goto ft_elf64_exit; 
     }
