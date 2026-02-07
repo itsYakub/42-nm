@@ -50,6 +50,15 @@ int main(int ac, char **av) {
             return (1);
         }
 
+        size_t lstsize = ft_lstsize(list);
+        if (lstsize > 1) {
+            if (list != item) {
+                ft_putchar_fd(10, 1);
+            }
+
+            ft_putstr_fd(path, 1);
+            ft_putendl_fd(":", 1);
+        }
         ft_print(arr, size);
 
         free(arr), arr = 0;
