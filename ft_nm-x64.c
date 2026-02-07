@@ -45,7 +45,7 @@ extern struct s_file *ft_elf64(const char *path, const char *buffer) {
             goto ft_elf64_exit; 
         }
 
-        file->f_size = shdr.sh_size / sizeof(*sym_tb);
+        file->f_size = (shdr.sh_size / sizeof(*sym_tb)) - 1;
     }
     if (!sym_tb) {
         g_errno = 4;
@@ -55,7 +55,10 @@ extern struct s_file *ft_elf64(const char *path, const char *buffer) {
     ft_strlcpy(file->f_name, path, PATH_MAX);
     file->f_type = 1;
     file->f_data = ft_calloc(file->f_size, sizeof(struct s_symbol));
-    for (size_t i = 1, j = 0; i < file->f_size; i++, j++) {
+    /* NOTE:
+     *  Check for out-of-bound scenario
+     * */
+    for (size_t i = 1, j = 0; j < file->f_size; i++, j++) {
         Elf64_Sym sym = sym_tb[i];
         char  st_code = ft_elf64_getLetterCode(shdr_tb, sym);
         char *st_name = strtab + sym.st_name;
