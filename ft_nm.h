@@ -14,10 +14,11 @@
 # include <sys/stat.h>   /* fstat() */
 # include <sys/mman.h>   /* mmap(), munmap() */
 #
+# include <linux/limits.h>
+#
 # include "libft/libft.h"
 
-extern t_list *g_paths;
-extern const char *g_prog;
+extern char *g_prog;
 
 extern int g_opt_debug;
 extern int g_opt_extern;
@@ -25,6 +26,12 @@ extern int g_opt_undef;
 extern int g_opt_sort;
 
 extern int g_errno;
+
+struct s_file {
+    uintptr_t ptr;
+    char name[PATH_MAX];
+    char code;
+};
 
 /* ./ft_nm.c */
 

@@ -6,7 +6,7 @@ static int ft_getopt_version(void);
 
 extern int ft_getopt(int ac, char **av) {
     (void) ac;
-    g_prog = (const char *) *av;
+    g_prog = *av;
     if (!g_prog) { return (0); }
     while (*++av) {
         /* process options... */
@@ -94,16 +94,6 @@ extern int ft_getopt(int ac, char **av) {
                 } while (*++opt);
             }
         }
-
-        /* process files... */
-        else {
-            t_list  *l;
-
-            l = ft_lstnew(ft_strdup(*av));
-            if (!l) { return (0); }
-
-            ft_lstadd_back(&g_paths, l);
-        }
     }
     return (1);
 }
@@ -134,10 +124,6 @@ static int ft_getopt_help(void) {
     /* bug reports... */
     ft_putendl_fd("Report bugs to <https://github.com/itsYakub/42-nm/issues>.", 1);
     
-    /* gently exit the program... */
-    if (g_paths) {
-        ft_lstclear(&g_paths, free), g_paths = 0;
-    }
     exit(0);
 }
 
@@ -147,10 +133,5 @@ static int ft_getopt_version(void) {
     ft_putendl_fd("Project available under the GNU Lesser General Public License v.2.1.", 1);
     ft_putendl_fd("Source code available under <https://github.com/itsYakub/42-nm>.", 1);
 
-    /* gently exit the program... */
-    if (g_paths) {
-        ft_lstclear(&g_paths, free), g_paths = 0;
-    }
     exit(0);
-    
 }

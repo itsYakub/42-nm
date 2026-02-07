@@ -10,44 +10,36 @@
  * */
 
 int main(int ac, char **av) {
-    if (!ft_getopt(ac, av)) {
-        if (g_paths) {
-            ft_lstclear(&g_paths, free), g_paths = 0;
-        }
+    int status = ft_getopt(ac, av);
+    if (!status) {
         return (1);
     }
+
+    t_list *list = 0;
+    for (size_t i = 1; i < (size_t) ac; i++) {
+        if (*av[i] != '-') {
+            char *content = ft_strdup(av[i]);
+            t_list *new = ft_lstnew(content);
+
+            ft_lstadd_back(&list, new);
+        }
+    }
+
+    if (!list) {
+        char *content = ft_strdup("a.out");
+        t_list *new = ft_lstnew(content);
+
+        ft_lstadd_back(&list, new);
+    }
+
+    for (t_list *item = list; item; item = item->next) {
+        const char *path = item->content;
+
+        /* ... */
+        (void) path;
+    }
     
-    if (!g_paths || !ft_lstsize(g_paths)) {
-        g_paths = ft_lstnew(ft_strdup("a.out"));
-        if (!g_paths) {
-            return (1);
-        }
-    }
-
-    for (t_list *path = g_paths; path; path = path->next) {
-        const char *name = path->content;
-        if (!name) {
-            ft_lstclear(&g_paths, free), g_paths = 0;
-            return (1);
-        }
-
-        char *output = ft_file(name);
-        if (output) {
-            if (ft_lstsize(g_paths) > 1) {
-                ft_putchar_fd('\n', 1);
-                ft_putstr_fd(name, 1);
-                ft_putendl_fd(":", 1);
-            }
-        }
-        else if (g_errno != 0) {
-            output = ft_perror(name);
-        }
-
-        ft_putstr_fd(output, 1);
-        free(output), output = 0;
-    }
-
-    ft_lstclear(&g_paths, free), g_paths = 0;
+    ft_lstclear(&list, free), list = 0;
     return (0);
 }
 
@@ -105,14 +97,9 @@ extern char *ft_file(const char *path) {
 }
 
 
-
-/* g_paths - list of files to process
- * */
-t_list *g_paths = 0;
-
 /* g_prog - name of the program
  * */
-const char *g_prog = 0;
+char *g_prog = 0;
 
 /* g_opt_debug - show debug symbols
  * > 0 - disabled
