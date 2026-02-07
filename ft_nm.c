@@ -1,7 +1,5 @@
 /* TODO:
- * 1. [X] perror should return output string
- * 2. [X] output string should be either printed directly (regular binary files) or appended to the output (archives)
- * 3. [ ] improve efficiency of execution (it's to damn slow)
+ * 1. [ ] Fix problem with flags
  * */
 
 #include "./ft_nm.h"
@@ -35,27 +33,52 @@ int main(int ac, char **av) {
     for (t_list *item = list; item; item = item->next) {
         const char *path = item->content;
 
-        struct s_symbol *arr = ft_file(path);
-        if (!arr) {
-            continue; 
+        struct s_file *file = ft_file(path);
+        if (!file) {
+            continue;
         }
 
-        size_t size = 0;
-        while (arr[size].valid) { size++; }
+        switch (file->f_type) {
+            /* case: regular file */
+            case (1): {
+                struct s_symbol *arr = (struct s_symbol *) file->f_data;
+                
+                arr = ft_sort(arr, file->f_size);
+                size_t lstsize = ft_lstsize(list);
+                if (lstsize > 1) {
+                    if (list != item) {
+                        ft_putchar_fd(10, 1);
+                    }
 
-        arr = ft_sort(arr, size);
-        size_t lstsize = ft_lstsize(list);
-        if (lstsize > 1) {
-            if (list != item) {
-                ft_putchar_fd(10, 1);
-            }
+                    ft_putstr_fd(path, 1);
+                    ft_putendl_fd(":", 1);
+                }
 
-            ft_putstr_fd(path, 1);
-            ft_putendl_fd(":", 1);
+                ft_printFile(*file);
+                free(arr), arr = 0;
+            } break;
+
+            /* case: archive file */
+            case (2): {
+                struct s_file *files = (struct s_file *) file->f_data;
+
+                /* for every file in archive... */
+                for (size_t i = 0; i < file->f_size; i++) {
+                    struct s_symbol *arr = (struct s_symbol *) files[i].f_data;
+
+                    arr = ft_sort(arr, files[i].f_size);
+                    
+                    ft_putstr_fd(path, 1);
+                    ft_putendl_fd(":", 1);
+                    ft_printFile(file[i]);
+                    free(arr), arr = 0;
+                }
+
+                free(files), files = 0;
+            } break;
         }
-        ft_print(arr, size);
 
-        free(arr), arr = 0;
+        free(file), file = 0;
     }
     
     ft_lstclear(&list, free), list = 0;

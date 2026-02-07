@@ -10,12 +10,13 @@ static int ft_elf64_getLetterCode(Elf64_Shdr *, Elf64_Sym);
 /* SECTION: api
  * */
 
-extern struct s_symbol *ft_elf64(const char *buffer) {
+extern struct s_file *ft_elf64(const char *path, const char *buffer) {
     if (!buffer) { return (0); }
-
-    /* output pointer... */
-    size_t size = 0;
-    struct s_symbol *arr = 0;
+    
+    struct s_file *file = malloc(sizeof(struct s_file));
+    if (!file) {
+        return (0);
+    }
 
     /* ehdr... */
     Elf64_Ehdr *ehdr = ft_elf_extract(buffer, sizeof(Elf64_Ehdr), 0);
@@ -44,19 +45,17 @@ extern struct s_symbol *ft_elf64(const char *buffer) {
             goto ft_elf64_exit; 
         }
 
-        size = shdr.sh_size / sizeof(*sym_tb);
+        file->f_size = shdr.sh_size / sizeof(*sym_tb);
     }
     if (!sym_tb) {
         g_errno = 4;
         goto ft_elf64_exit;
     }
 
-    arr = ft_calloc(size + 1, sizeof(struct s_symbol));
-    if (!arr) {
-        goto ft_elf64_exit; 
-    }
-
-    for (size_t i = 0; i < size; i++) {
+    ft_strlcpy(file->f_name, path, PATH_MAX);
+    file->f_type = 1;
+    file->f_data = ft_calloc(file->f_size, sizeof(struct s_symbol));
+    for (size_t i = 1, j = 0; i < file->f_size; i++, j++) {
         Elf64_Sym sym = sym_tb[i];
         char  st_code = ft_elf64_getLetterCode(shdr_tb, sym);
         char *st_name = strtab + sym.st_name;
@@ -67,15 +66,15 @@ extern struct s_symbol *ft_elf64(const char *buffer) {
                 }
             }
         } 
-        
-        ft_strlcpy(arr[i].name, st_name, PATH_MAX);
-        arr[i].arch = ELFCLASS64;
-        arr[i].type = ELF64_ST_TYPE(sym.st_info);
-        arr[i].bind = ELF64_ST_BIND(sym.st_info);
-        arr[i].shndx = sym.st_shndx;
-        arr[i].addr = sym.st_value;
-        arr[i].code = st_code;
-        arr[i].valid = 1;
+       
+        struct s_symbol *data = file->f_data;
+        ft_strlcpy(data[j].s_name, st_name, PATH_MAX);
+        data[j].s_arch = ELFCLASS64;
+        data[j].s_type = ELF64_ST_TYPE(sym.st_info);
+        data[j].s_bind = ELF64_ST_BIND(sym.st_info);
+        data[j].s_shndx = sym.st_shndx;
+        data[j].s_addr = sym.st_value;
+        data[j].s_code = st_code;
     }
 
 ft_elf64_exit:
@@ -84,7 +83,7 @@ ft_elf64_exit:
     if (shdr_tb)  { free(shdr_tb), shdr_tb = 0; }
     if (sym_tb)   { free(sym_tb), sym_tb = 0; }
     if (ehdr)     { free(ehdr), ehdr = 0; }
-    return (arr);
+    return (file);
 }
 
 /* SECTION: static functions

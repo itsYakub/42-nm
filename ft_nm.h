@@ -28,29 +28,34 @@ extern int g_opt_sort;
 extern int g_errno;
 
 struct s_symbol {
-    uint64_t arch;
+    uint64_t s_arch;
 
-    uint64_t type;
-    uint64_t bind;
-    uint64_t shndx;
+    uint64_t s_type;
+    uint64_t s_bind;
+    uint64_t s_shndx;
     
-    uintptr_t addr;
-    char name[PATH_MAX];
-    char code;
+    uintptr_t s_addr;
+    char s_name[PATH_MAX];
+    char s_code;
+};
 
-    /* file validity flag... */
-    char valid;
+struct s_file {
+    char   f_name[PATH_MAX];
+    void  *f_data;
+    size_t f_size;
+
+    uint8_t f_type;
 };
 
 /* ./ft_nm-file.c */
 
-extern struct s_symbol *ft_file(const char *);
+extern struct s_file *ft_file(const char *);
 
 extern struct s_symbol *ft_sort(struct s_symbol *, const size_t);
 
 /* ./ft_nm-print.c */
 
-extern int ft_print(struct s_symbol *, const size_t);
+extern int ft_printFile(struct s_file);
 
 /* ./ft_nm-sort.c */
 
@@ -62,15 +67,15 @@ extern int ft_getopt(int, char **);
 
 /* ./ft_nm-x32.c */
 
-extern struct s_symbol *ft_elf32(const char *);
+extern struct s_file *ft_elf32(const char *, const char *);
 
 /* ./ft_nm-x64.c */
 
-extern struct s_symbol *ft_elf64(const char *);
+extern struct s_file *ft_elf64(const char *, const char *);
 
 /* ./ft_nm-ar.c */
 
-extern int ft_ar(const char *, const size_t);
+extern struct s_file *ft_ar(const char *, const char *, const size_t);
 
 /* ./ft_nm-util.c */
 

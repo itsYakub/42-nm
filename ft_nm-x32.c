@@ -10,12 +10,13 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *, Elf32_Sym);
 /* SECTION: api
  * */
 
-extern struct s_symbol *ft_elf32(const char *buffer) {
+extern struct s_file *ft_elf32(const char *path, const char *buffer) {
     if (!buffer) { return (0); }
-
-    /* output pointer... */
-    size_t size = 0;
-    struct s_symbol *arr = 0;
+    
+    struct s_file *file = malloc(sizeof(struct s_file));
+    if (!file) {
+        return (0);
+    }
 
     /* ehdr... */
     Elf32_Ehdr *ehdr = ft_elf_extract(buffer, sizeof(Elf32_Ehdr), 0);
@@ -44,33 +45,36 @@ extern struct s_symbol *ft_elf32(const char *buffer) {
             goto ft_elf32_exit; 
         }
 
-        size = shdr.sh_size / sizeof(*sym_tb);
+        file->f_size = shdr.sh_size / sizeof(*sym_tb);
     }
     if (!sym_tb) {
         g_errno = 4;
         goto ft_elf32_exit;
     }
 
-    arr = ft_calloc(size + 1, sizeof(struct s_symbol));
-    if (!arr) {
-        goto ft_elf32_exit; 
-    }
-
-    for (size_t i = 0; i < size; i++) {
+    ft_strlcpy(file->f_name, path, PATH_MAX);
+    file->f_type = 1;
+    file->f_data = ft_calloc(file->f_size + 1, sizeof(struct s_symbol));
+    for (size_t i = 1, j = 0; i < file->f_size; i++, j++) {
         Elf32_Sym sym = sym_tb[i];
         char  st_code = ft_elf32_getLetterCode(shdr_tb, sym);
-        char *st_name = ELF32_ST_TYPE(sym.st_info) == STT_SECTION ? 
-            shstrtab + shdr_tb[sym.st_shndx].sh_name :
-            strtab + sym.st_name;
-        
-        ft_strlcpy(arr[i].name, st_name, PATH_MAX);
-        arr[i].arch = ELFCLASS32;
-        arr[i].type = ELF32_ST_TYPE(sym.st_info);
-        arr[i].bind = ELF32_ST_BIND(sym.st_info);
-        arr[i].shndx = sym.st_shndx;
-        arr[i].addr = sym.st_value;
-        arr[i].code = st_code;
-        arr[i].valid = 1;
+        char *st_name = strtab + sym.st_name;
+        if (!*st_name) {
+            if (g_opt_debug) {
+                if (ELF32_ST_TYPE(sym.st_info) == STT_SECTION) {
+                    st_name = shstrtab + shdr_tb[sym.st_shndx].sh_name;
+                }
+            }
+        } 
+       
+        struct s_symbol *data = file->f_data;
+        ft_strlcpy(data[j].s_name, st_name, PATH_MAX);
+        data[j].s_arch = ELFCLASS32;
+        data[j].s_type = ELF32_ST_TYPE(sym.st_info);
+        data[j].s_bind = ELF32_ST_BIND(sym.st_info);
+        data[j].s_shndx = sym.st_shndx;
+        data[j].s_addr = sym.st_value;
+        data[j].s_code = st_code;
     }
 
 ft_elf32_exit:
@@ -79,7 +83,7 @@ ft_elf32_exit:
     if (shdr_tb)  { free(shdr_tb), shdr_tb = 0; }
     if (sym_tb)   { free(sym_tb), sym_tb = 0; }
     if (ehdr)     { free(ehdr), ehdr = 0; }
-    return (arr);
+    return (file);
 }
 
 /* SECTION: static functions

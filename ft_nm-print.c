@@ -1,59 +1,55 @@
 #include "ft_nm.h"
 
-static int ft_printExact(struct s_symbol);
+static int ft_printSymbol(struct s_symbol);
 
-extern int ft_print(struct s_symbol *arr, const size_t size) {
-    /* null-check... */
-    if (!arr)  { return (0); }
-    if (!size) { return (0); }
-
-    for (size_t i = 0; i < size; i++) {
-        struct s_symbol file = arr[i];
+extern int ft_printFile(struct s_file file) {
+    for (size_t i = 0; i < file.f_size; i++) {
+        struct s_symbol sym = ((struct s_symbol *) file.f_data)[i];
 
         /* process '-u' / '--undefined-only'... */
         if (g_opt_undef) {
-            if (file.shndx == SHN_UNDEF) {
-                ft_printExact(file);
+            if (sym.s_shndx == SHN_UNDEF) {
+                ft_printSymbol(sym);
             }
         }
         
         /* process '-g' / '--extern-only'... */
         else if (g_opt_extern) {
-            if (file.bind == STB_GLOBAL ||
-                file.bind == STB_WEAK
+            if (sym.s_bind == STB_GLOBAL ||
+                sym.s_bind == STB_WEAK
             ) {
-                ft_printExact(file);
+                ft_printSymbol(sym);
             }
         }
         
         /* process '-a' / '--debug-syms'... */
         else if (g_opt_debug) {
-            if (!*file.name) {
-                if (file.type == STT_SECTION) {
+            if (!*sym.s_name) {
+                if (sym.s_type == STT_SECTION) {
                     /* if symbol is debug symbol... */
-                    if (!ft_strncmp(file.name, ".debug_", 7)) {
-                        file.code = 'N';
+                    if (!ft_strncmp(sym.s_name, ".debug_", 7)) {
+                        sym.s_code = 'N';
                     }
                 }
             }
-            ft_printExact(file);
+            ft_printSymbol(sym);
         }
 
         /* process default... */
         else {
-            if (file.shndx != SHN_LOPROC    &&
-                file.shndx != SHN_HIPROC    &&
-                file.shndx != SHN_BEFORE    &&
-                file.shndx != SHN_AFTER     &&
-                file.shndx != SHN_LOOS      &&
-                file.shndx != SHN_HIOS      &&
-                file.shndx != SHN_ABS       &&
-                file.shndx != SHN_COMMON    &&
-                file.shndx != SHN_XINDEX    &&
-                file.shndx != SHN_HIRESERVE
+            if (sym.s_shndx != SHN_LOPROC    &&
+                sym.s_shndx != SHN_HIPROC    &&
+                sym.s_shndx != SHN_BEFORE    &&
+                sym.s_shndx != SHN_AFTER     &&
+                sym.s_shndx != SHN_LOOS      &&
+                sym.s_shndx != SHN_HIOS      &&
+                sym.s_shndx != SHN_ABS       &&
+                sym.s_shndx != SHN_COMMON    &&
+                sym.s_shndx != SHN_XINDEX    &&
+                sym.s_shndx != SHN_HIRESERVE
             ) {
-                if (file.type != STT_SECTION) {
-                    ft_printExact(file);
+                if (sym.s_type != STT_SECTION) {
+                    ft_printSymbol(sym);
                 }
             }
         }
@@ -62,21 +58,21 @@ extern int ft_print(struct s_symbol *arr, const size_t size) {
     return (1);
 }
 
-static int ft_printExact(struct s_symbol file) {
+static int ft_printSymbol(struct s_symbol sym) {
     size_t addrlen = 0;
-    switch (file.arch) {
+    switch (sym.s_arch) {
         case (ELFCLASS32): { addrlen = 8; } break;
         case (ELFCLASS64): { addrlen = 16; } break;
     }
     
-    uintptr_t addr = file.addr;
+    uintptr_t addr = sym.s_addr;
     
     size_t n_l = 0;
     for (uint64_t tmp = addr; tmp != 0; tmp /= 16) {
         n_l++;
     }
 
-    char c = file.shndx == SHN_UNDEF ? ' ' : '0';
+    char c = sym.s_shndx == SHN_UNDEF ? ' ' : '0';
     for (size_t i = 0; i < addrlen - n_l; i++) {
         ft_putchar_fd(c, 1);
     }
@@ -88,11 +84,11 @@ static int ft_printExact(struct s_symbol file) {
     ft_putstr_fd(" ", 1);
 
     /* print code... */
-    ft_putchar_fd(file.code, 1);
+    ft_putchar_fd(sym.s_code, 1);
     ft_putstr_fd(" ", 1);
 
     /* print name... */
-    ft_putendl_fd(file.name, 1);
+    ft_putendl_fd(sym.s_name, 1);
 
     return (1);
 }

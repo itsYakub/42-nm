@@ -1,11 +1,6 @@
 #include "./ft_nm.h"
 
-struct s_archive {
-    char name[PATH_MAX];
-    struct s_symbol *arr;
-};
-
-extern int ft_ar(const char *buffer, const size_t size) {
+extern struct s_file *ft_ar(const char *path, const char *buffer, const size_t size) {
     if (!buffer) { return (0); }
     if (!size)   { return (0); }
 
@@ -68,32 +63,15 @@ extern int ft_ar(const char *buffer, const size_t size) {
     
         /* execution... */
         if (ft_elf_getMagic(cursor)) {
-            /* allocate symbols... */
-            struct s_symbol *tmp = 0;
+            struct s_file *file = 0;
             switch (ft_elf_getArch(cursor)) {
-                case (ELFCLASS32): { tmp = ft_elf32(cursor); } break;
-                case (ELFCLASS64): { tmp = ft_elf64(cursor); } break;
+                case (ELFCLASS32): { file = ft_elf32(path, cursor); } break;
+                case (ELFCLASS64): { file = ft_elf64(path, cursor); } break;
             }
             
-            size_t size = 0;
-            while (tmp[size].valid) { size++; }
-
-            tmp = ft_sort(tmp, size);
-
-            /* allocate archive... */
-            struct s_archive *ar = malloc(sizeof(struct s_archive));
-            if (!ar) {
-                free(tmp), tmp = 0;
-                ft_lstclear(&list, free), list = 0;
-                return (0);
-            }
-
-            ft_strlcpy(ar->name, ar_name, PATH_MAX);
-            ar->arr = tmp;
-            ft_lstadd_back(&list, ft_lstnew(ar));
+            ft_lstadd_back(&list, ft_lstnew(file));
         }
         
-
         /* move to the next blob... */
         cursor += ar_size;
 
@@ -101,33 +79,21 @@ extern int ft_ar(const char *buffer, const size_t size) {
         free(ar_name), ar_name = 0;
     }
 
-    /* print every file with it's content... */
-    for (t_list *item = list; item; item = item->next) {
-        struct s_archive *ar = (struct s_archive *) item->content;
-        const char *path = ar->name;
-        
-        struct s_symbol *arr = ar->arr;
-        if (!arr) {
-            g_errno = 4;
-            ft_perror(path);
-            continue;
-        }
+    /* final step: archive file... */
+    size_t lstsize = ft_lstsize(list);
+    struct s_file *file = malloc(sizeof(struct s_file));
+    ft_strlcpy(file->f_name, path, PATH_MAX);
+    file->f_size = lstsize;
+    file->f_data = malloc(lstsize * sizeof(struct s_file));
+    file->f_type = 2;
+    for (size_t i = 0; i < lstsize; i++) {
+        file->f_data = list->content;
 
-        size_t lstsize = ft_lstsize(list);
-        if (lstsize > 1) {
-            ft_putchar_fd(10, 1);
-            ft_putstr_fd(path, 1);
-            ft_putendl_fd(":", 1);
-        }
-            
-        size_t size = 0;
-        while (arr[size].valid) { size++; }
-
-        ft_print(arr, size);
-
-        free(arr), arr = 0;
+        /* cleanup... */
+        t_list *tmp = list;
+        list = list->next;
+        free(tmp);
     }
 
-    ft_lstclear(&list, free), list = 0;
-    return (1);
+    return (file);
 }

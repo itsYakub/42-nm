@@ -4,7 +4,7 @@ static int ft_comparea(struct s_symbol, struct s_symbol);
 
 static int ft_compared(struct s_symbol, struct s_symbol);
 
-extern struct s_symbol *ft_file(const char *path) {
+extern struct s_file *ft_file(const char *path) {
     /* setup... */
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
@@ -32,24 +32,19 @@ extern struct s_symbol *ft_file(const char *path) {
     }
     
     /* execution... */
-    struct s_symbol *arr = 0;
+    struct s_file *result = 0;
 
     /* check if the file is ELF file... */
     if (ft_elf_getMagic(buffer)) {
         switch (ft_elf_getArch(buffer)) {
-            case (ELFCLASS32): { arr = ft_elf32(buffer); } break;
-            case (ELFCLASS64): { arr = ft_elf64(buffer); } break;
+            case (ELFCLASS32): { result = ft_elf32(path, buffer); } break;
+            case (ELFCLASS64): { result = ft_elf64(path, buffer); } break;
         }
     }
     else {
         /* check if file is "ar" file... */
         if (ft_ar_getMagic(buffer)) {
-            ft_ar(buffer, stat.st_size);
-            /* NOTE:
-             *  By that logic we're returning NULL from the function
-             *  We must return other valid value or return 'arr' using parameters.
-             *  Then return statement would serve as a status.
-             * */
+            result = ft_ar(path, buffer, stat.st_size);
         }
         else {
             g_errno = 3;
@@ -62,7 +57,7 @@ extern struct s_symbol *ft_file(const char *path) {
     munmap(buffer, stat.st_size), buffer = 0;
     close(fd), fd = 0;
 
-    return (arr);
+    return (result);
 }
 
 extern struct s_symbol *ft_sort(struct s_symbol *arr, const size_t size) {
@@ -81,8 +76,8 @@ extern struct s_symbol *ft_sort(struct s_symbol *arr, const size_t size) {
 }
 
 static int ft_comparea(struct s_symbol f0, struct s_symbol f1) {
-    const char *n0, *name0 = n0 = f0.name;
-    const char *n1, *name1 = n1 = f1.name;
+    const char *n0, *name0 = n0 = f0.s_name;
+    const char *n1, *name1 = n1 = f1.s_name;
 
     while (*n0 || *n1) {
         while (*n0 && !ft_isalnum(*n0)) { n0++; }
@@ -99,8 +94,8 @@ static int ft_comparea(struct s_symbol f0, struct s_symbol f1) {
 }
 
 static int ft_compared(struct s_symbol f0, struct s_symbol f1) {
-    const char *n0, *name0 = n0 = f0.name;
-    const char *n1, *name1 = n1 = f1.name;
+    const char *n0, *name0 = n0 = f0.s_name;
+    const char *n1, *name1 = n1 = f1.s_name;
 
     while (*n0 || *n1) {
         while (*n0 && !ft_isalnum(*n0)) { n0++; }
