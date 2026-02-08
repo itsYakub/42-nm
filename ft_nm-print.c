@@ -24,12 +24,10 @@ extern int ft_printFile(struct s_file file) {
         
         /* process '-a' / '--debug-syms'... */
         else if (g_opt_debug) {
-            if (!*sym.s_name) {
-                if (sym.s_type == STT_SECTION) {
-                    /* if symbol is debug symbol... */
-                    if (!ft_strncmp(sym.s_name, ".debug_", 7)) {
-                        sym.s_code = 'N';
-                    }
+            if (sym.s_type == STT_SECTION) {
+                /* if symbol is debug symbol... */
+                if (!ft_strncmp(sym.s_name, ".debug_", 7)) {
+                    sym.s_code = 'N';
                 }
             }
             ft_printSymbol(sym);
@@ -65,7 +63,7 @@ static int ft_printSymbol(struct s_symbol sym) {
         case (ELFCLASS64): { addrlen = 16; } break;
     }
     
-    uintptr_t addr = sym.s_addr;
+    uintptr_t addr = sym.s_shndx == SHN_UNDEF ? 0 : sym.s_addr;
     
     size_t n_l = 0;
     for (uint64_t tmp = addr; tmp != 0; tmp /= 16) {

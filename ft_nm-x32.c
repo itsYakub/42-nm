@@ -145,7 +145,7 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
     /* symbol types... */
     switch (st_type) {
         case (STT_GNU_IFUNC): { c = 'i'; } break;
-        case (STT_FILE): { c = 'a'; } break;
+        case (STT_FILE):      { c = 'a'; } break;
     }
 
     /* proceed if letter code wasn't found... */
@@ -159,6 +159,11 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
                 c = 'B';
             } break;
 
+            case (SHT_REL):
+            case (SHT_RELA): {
+                c = 'R';
+            } break;
+            
             default: {
                 if (!(shdr.sh_flags & SHF_ALLOC)) { c = 'N'; }
                 switch (shdr.sh_flags) {
@@ -178,6 +183,10 @@ static int ft_elf32_getLetterCode(Elf32_Shdr *shdr_tb, Elf32_Sym sym) {
                 }
             } break;
         }
+    }
+
+    if (!c) {
+        c = '?';
     }
 
     /* check if symbol is global / local... */

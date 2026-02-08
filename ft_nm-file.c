@@ -75,38 +75,56 @@ extern struct s_symbol *ft_sort(struct s_symbol *arr, const size_t size) {
     return (ft_qsort(arr, 0, size - 1, compare));
 }
 
-static int ft_comparea(struct s_symbol f0, struct s_symbol f1) {
-    const char *n0, *name0 = n0 = f0.s_name;
-    const char *n1, *name1 = n1 = f1.s_name;
+static int ft_comparea(struct s_symbol s0, struct s_symbol s1) {
+    const char *n0, *name0 = n0 = s0.s_name;
+    const char *n1, *name1 = n1 = s1.s_name;
 
     while (*n0 || *n1) {
         while (*n0 && !ft_isalnum(*n0)) { n0++; }
         while (*n1 && !ft_isalnum(*n1)) { n1++; }
-        if (ft_tolower(*n0) != ft_tolower(*n1)) {
-            return (ft_tolower(*n0) > ft_tolower(*n1));
+
+        char c0 = ft_tolower(*n0);
+        char c1 = ft_tolower(*n1);
+        if (c0 != c1) {
+            return (c0 > c1);
         }
 
         if (*n0) { n0++; }
         if (*n1) { n1++; }
     }
 
-    return (ft_strcmp(name0, name1) > 0);
+    int strcmp = ft_strcmp(name0, name1);
+    if (strcmp) {
+        return (strcmp > 0);
+    }
+
+    return (s0.s_addr > s1.s_addr);
 }
 
-static int ft_compared(struct s_symbol f0, struct s_symbol f1) {
-    const char *n0, *name0 = n0 = f0.s_name;
-    const char *n1, *name1 = n1 = f1.s_name;
+static int ft_compared(struct s_symbol s0, struct s_symbol s1) {
+    const char *n0, *name0 = n0 = s0.s_name;
+    const char *n1, *name1 = n1 = s1.s_name;
 
+    /* compare cases... */
     while (*n0 || *n1) {
         while (*n0 && !ft_isalnum(*n0)) { n0++; }
         while (*n1 && !ft_isalnum(*n1)) { n1++; }
-        if (ft_tolower(*n0) != ft_tolower(*n1)) {
-            return (ft_tolower(*n0) < ft_tolower(*n1));
+        
+        char c0 = ft_tolower(*n0);
+        char c1 = ft_tolower(*n1);
+        if (c0 != c1) {
+            return (c0 < c1);
         }
 
         if (*n0) { n0++; }
         if (*n1) { n1++; }
     }
 
-    return (ft_strcmp(name0, name1) < 0);
+    int strcmp = ft_strcmp(name0, name1);
+    if (strcmp) {
+        return (strcmp < 0);
+    }
+
+    /* compare addressess... */
+    return (s0.s_addr > s1.s_addr);
 }
