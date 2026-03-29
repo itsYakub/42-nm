@@ -72,19 +72,19 @@ tests : all
 	@make -C . test
 	
 	$(info Test: -a, --debug-syms)
-	@make -C . test TEST_FLAGS=-a
+	@make -C . test TEST_FLAGS+=-a
 	
 	$(info Test: -g, --extern-only)
-	@make -C . test TEST_FLAGS=-g
+	@make -C . test TEST_FLAGS+=-g
 	
 	$(info Test: -u, --undefined-only)
-	@make -C . test TEST_FLAGS=-u
+	@make -C . test TEST_FLAGS+=-u
 	
 	$(info Test: -r, --reverse-sort)
-	@make -C . test TEST_FLAGS=-r
+	@make -C . test TEST_FLAGS+=-r
 	
 	$(info Test: -p, --no-sort)
-	@make -C . test TEST_FLAGS=-p
+	@make -C . test TEST_FLAGS+=-p
 
 # ========
 

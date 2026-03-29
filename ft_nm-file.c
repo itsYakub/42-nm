@@ -98,7 +98,7 @@ static int ft_comparea(struct s_symbol s0, struct s_symbol s1) {
         return (strcmp > 0);
     }
 
-    return (s0.s_addr > s1.s_addr);
+    return (s0.s_original_index > s1.s_original_index);
 }
 
 static int ft_compared(struct s_symbol s0, struct s_symbol s1) {
@@ -126,5 +126,5 @@ static int ft_compared(struct s_symbol s0, struct s_symbol s1) {
     }
 
     /* compare addressess... */
-    return (s0.s_addr > s1.s_addr);
+    return (s0.s_original_index > s1.s_original_index);
 }

@@ -68,6 +68,7 @@ extern struct s_file *ft_elf64(const char *path, const char *buffer) {
       
         struct s_symbol *data = &((struct s_symbol *) file->f_data)[j];
         *data = (struct s_symbol) {
+            .s_original_index = j,
             .s_arch = ELFCLASS64,
             .s_type = ELF64_ST_TYPE(sym.st_info),
             .s_bind = ELF64_ST_BIND(sym.st_info),

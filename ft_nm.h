@@ -28,6 +28,8 @@ extern int g_opt_sort;
 extern int g_errno;
 
 struct s_symbol {
+    size_t s_original_index;
+
     uint64_t s_arch;
 
     uint64_t s_type;

@@ -41,12 +41,12 @@ extern int ft_printFile(struct s_file file) {
                 sym.s_shndx != SHN_AFTER     &&
                 sym.s_shndx != SHN_LOOS      &&
                 sym.s_shndx != SHN_HIOS      &&
-                sym.s_shndx != SHN_ABS       &&
-                sym.s_shndx != SHN_COMMON    &&
                 sym.s_shndx != SHN_XINDEX    &&
                 sym.s_shndx != SHN_HIRESERVE
             ) {
-                if (sym.s_type != STT_SECTION) {
+                if (sym.s_type != STT_SECTION &&
+                    sym.s_type != STT_FILE
+                ) {
                     ft_printSymbol(sym);
                 }
             }
